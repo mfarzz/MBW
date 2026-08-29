@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "MBW.App (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "MBW.App (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

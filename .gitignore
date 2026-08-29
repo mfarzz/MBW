@@ -1,0 +1,102 @@
+# =============================================================================
+# MBW — .NET / WinUI 3 / Visual Studio
+# Keep source code & project files; ignore build outputs & local IDE state.
+# =============================================================================
+
+## Build output
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+[Aa]rtifacts/
+[Ll]og/
+[Ll]ogs/
+
+## .NET
+project.lock.json
+project.fragment.lock.json
+*.dll
+*.exe
+*.pdb
+*.cache
+*.ilk
+*.meta
+*.mdb
+*.opendb
+*.opensdf
+*.sdf
+*.VC.db
+*.VC.VC.opendb
+
+## NuGet
+*.nupkg
+*.snupkg
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+*.nuget.props
+*.nuget.targets
+
+## Visual Studio / Rider
+.vs/
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+.idea/
+
+## VS Code / Cursor (local editor settings)
+.vscode/
+.cursor/
+
+## WinUI / Windows App SDK / MSIX
+AppPackages/
+BundleArtifacts/
+Package.StoreAssociation.xml
+*.appx
+*.appxbundle
+*.msix
+*.msixbundle
+*.appxrecipe
+*.build.appxrecipe
+*.appinstaller
+*.msixupload
+*.publishproj
+*.pubxml.user
+publish/
+
+## Test & coverage
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+*.trx
+*.coverage
+*.coveragexml
+*.VisualState.xml
+TestResult.xml
+
+## Secrets & local config (never commit)
+.env
+.env.*
+!.env.example
+appsettings.*.local.json
+secrets.json
+*.pfx
+*.key
+*.pem
+
+## OS junk
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+
+## Misc tooling caches
+*.DotSettings.user
+*.tmp
+*.temp
+~$*
+*.swp
+*.swo

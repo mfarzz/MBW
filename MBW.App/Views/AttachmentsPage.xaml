@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="MBW.App.Views.AttachmentsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+    <StackPanel Padding="32" Spacing="12">
+        <TextBlock Text="Attachments" FontSize="28" FontWeight="SemiBold" />
+        <TextBlock Text="Manage shared and recipient-specific email attachments." Opacity="0.7" />
+        <Button Content="Add attachment folder" HorizontalAlignment="Left" />
+        <Border BorderBrush="{ThemeResource CardStrokeColorDefault}" BorderThickness="1" Padding="20" Margin="0,16,0,0">
+            <TextBlock Text="No attachments loaded yet." Opacity="0.7" />
+        </Border>
+    </StackPanel>
+</Page>
