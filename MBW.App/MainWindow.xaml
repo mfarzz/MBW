@@ -9,6 +9,12 @@
     Title="MBW">
 
     <Grid Background="{StaticResource MBWSidebarBrush}">
+        <Grid.KeyboardAccelerators>
+            <KeyboardAccelerator Key="N" Modifiers="Control" Invoked="FileNewWorkspace_Invoked" />
+            <KeyboardAccelerator Key="O" Modifiers="Control" Invoked="FileOpenWorkspace_Invoked" />
+            <KeyboardAccelerator Key="S" Modifiers="Control" Invoked="FileSaveWorkspace_Invoked" />
+            <KeyboardAccelerator Key="F4" Modifiers="Menu" Invoked="FileExit_Invoked" />
+        </Grid.KeyboardAccelerators>
         <Grid.RowDefinitions>
             <RowDefinition Height="{StaticResource ShellTitleBarHeight}" />
             <RowDefinition Height="*" />
@@ -32,10 +38,30 @@
             </StackPanel>
 
             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="0" VerticalAlignment="Center">
-                <Button x:Name="FileMenuButton" Content="File" Style="{StaticResource SubtleButtonStyle}" Height="28" Padding="10,0" Click="TopMenuButton_Click" />
+                <Button x:Name="FileMenuButton" Content="File" Style="{StaticResource SubtleButtonStyle}" Height="28" Padding="10,0">
+                    <Button.Flyout>
+                        <MenuFlyout Placement="BottomEdgeAlignedLeft">
+                            <MenuFlyoutItem Text="New Workspace" Click="FileNewWorkspace_Click" KeyboardAcceleratorTextOverride="Ctrl+N" />
+                            <MenuFlyoutItem Text="Open Workspace" Click="FileOpenWorkspace_Click" KeyboardAcceleratorTextOverride="Ctrl+O" />
+                            <MenuFlyoutItem Text="Save Workspace" Click="FileSaveWorkspace_Click" KeyboardAcceleratorTextOverride="Ctrl+S" />
+                            <MenuFlyoutSeparator />
+                            <MenuFlyoutItem Text="Exit" Click="FileExit_Click" KeyboardAcceleratorTextOverride="Alt+F4" />
+                        </MenuFlyout>
+                    </Button.Flyout>
+                </Button>
                 <Button x:Name="EditMenuButton" Content="Edit" Style="{StaticResource SubtleButtonStyle}" Height="28" Padding="10,0" Click="TopMenuButton_Click" />
                 <Button x:Name="ViewMenuButton" Content="View" Style="{StaticResource SubtleButtonStyle}" Height="28" Padding="10,0" Click="TopMenuButton_Click" />
-                <Button x:Name="WorkspaceMenuButton" Content="Workspace" Style="{StaticResource SubtleButtonStyle}" Height="28" Padding="10,0" Click="TopMenuButton_Click" />
+                <Button x:Name="WorkspaceMenuButton" Content="Workspace" Style="{StaticResource SubtleButtonStyle}" Height="28" Padding="10,0">
+                    <Button.Flyout>
+                        <MenuFlyout Placement="BottomEdgeAlignedLeft">
+                            <MenuFlyoutItem Text="Database" Click="WorkspaceDatabase_Click" />
+                            <MenuFlyoutItem Text="Attachments" Click="WorkspaceAttachments_Click" />
+                            <MenuFlyoutItem Text="Configuration" Click="WorkspaceConfiguration_Click" />
+                            <MenuFlyoutSeparator />
+                            <MenuFlyoutItem Text="SMTP" Click="WorkspaceSmtp_Click" />
+                        </MenuFlyout>
+                    </Button.Flyout>
+                </Button>
                 <Button x:Name="HelpMenuButton" Content="Help" Style="{StaticResource SubtleButtonStyle}" Height="28" Padding="10,0" Click="TopMenuButton_Click" />
             </StackPanel>
 
@@ -70,7 +96,7 @@
                         <Viewbox Width="16" Height="16">
                             <SymbolIcon Symbol="Folder" Foreground="{ThemeResource AccentFillColorDefaultBrush}" />
                         </Viewbox>
-                        <TextBlock Text="Seminar-FTI" FontSize="13" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorPrimary}" VerticalAlignment="Center" />
+                        <TextBlock x:Name="WorkspaceNameText" Text="Seminar-FTI" FontSize="13" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorPrimary}" VerticalAlignment="Center" />
                     </StackPanel>
                 </Border>
 
@@ -170,7 +196,7 @@
                     </StackPanel>
                 </ScrollViewer>
 
-                <TextBlock Grid.Row="3" Text="Workspace saved · 2 min ago" Margin="12,0,12,12" FontSize="11" Foreground="{ThemeResource TextFillColorTertiary}" />
+                <TextBlock x:Name="WorkspaceSavedText" Grid.Row="3" Text="No workspace loaded" Margin="12,0,12,12" FontSize="11" Foreground="{ThemeResource TextFillColorTertiary}" />
             </Grid>
 
             <Frame x:Name="RootFrame" Grid.Column="1" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}" />
@@ -194,7 +220,7 @@
             </StackPanel>
             <TextBlock Grid.Column="1" Text="Database: 1,245 rows" Foreground="White" FontSize="11" Margin="16,0,0,0" VerticalAlignment="Center" />
             <TextBlock Grid.Column="2" Text="Attachments: 1,240 matched" Foreground="White" FontSize="11" Margin="16,0,0,0" VerticalAlignment="Center" />
-            <TextBlock Grid.Column="4" Text="Seminar-FTI" Foreground="White" FontSize="11" Margin="0,0,16,0" VerticalAlignment="Center" />
+            <TextBlock x:Name="StatusWorkspaceText" Grid.Column="4" Text="Seminar-FTI" Foreground="White" FontSize="11" Margin="0,0,16,0" VerticalAlignment="Center" />
             <TextBlock Grid.Column="5" Text="UTF-8" Foreground="White" FontSize="11" Margin="0,0,16,0" VerticalAlignment="Center" />
             <StackPanel Grid.Column="6" Orientation="Horizontal" Spacing="6" Margin="0,0,12,0" VerticalAlignment="Center">
                 <TextBlock Text="Ready" Foreground="White" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" />

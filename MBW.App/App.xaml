@@ -12,7 +12,7 @@
             </ResourceDictionary.MergedDictionaries>
 
             <!-- MBW shell palette — matches reference mockup -->
-            <Color x:Key="MBWAccentColor">#FF185ABD</Color>
+            <Color x:Key="MBWAccentColor">#FF0067C0</Color>
             <Color x:Key="MBWAccentLightColor">#FFE5F0FB</Color>
             <Color x:Key="MBWBackgroundColor">#FFF3F3F3</Color>
             <Color x:Key="MBWSurfaceColor">#FFFFFFFF</Color>
@@ -41,6 +41,15 @@
             <SolidColorBrush x:Key="CardStrokeColorDefault" Color="{StaticResource MBWBorderColor}" />
             <SolidColorBrush x:Key="TextOnAccentFillColorPrimary" Color="#FFFFFFFF" />
             <SolidColorBrush x:Key="SystemFillColorSuccess" Color="{StaticResource MBWGoodColor}" />
+
+            <!-- WinUI built-in button/dialog accent uses SystemAccentColor, not AccentFillColorDefaultBrush -->
+            <Color x:Key="SystemAccentColor">#FF0067C0</Color>
+            <Color x:Key="SystemAccentColorLight1">#FF1A75C9</Color>
+            <Color x:Key="SystemAccentColorLight2">#FF4D94D6</Color>
+            <Color x:Key="SystemAccentColorLight3">#FF80B3E3</Color>
+            <Color x:Key="SystemAccentColorDark1">#FF005CAD</Color>
+            <Color x:Key="SystemAccentColorDark2">#FF004682</Color>
+            <Color x:Key="SystemAccentColorDark3">#FF003158</Color>
 
             <!-- Shell layout constants -->
             <GridLength x:Key="ShellTitleBarHeight">36</GridLength>

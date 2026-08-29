@@ -14,7 +14,7 @@ namespace MBW.App.Views
         public EmailEditorPage()
         {
             this.InitializeComponent();
-            this.DataContext = new EmailEditorViewModel();
+            this.DataContext = Composition.AppServices.CreateEmailEditorViewModel();
             this.Loaded += EmailEditorPage_Loaded;
         }
 

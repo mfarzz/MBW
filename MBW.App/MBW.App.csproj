@@ -12,6 +12,8 @@
     <WinUISDKReferences>false</WinUISDKReferences>
     <EnableMsixTooling>true</EnableMsixTooling>
     <Nullable>enable</Nullable>
+    <Platform Condition="'$(Platform)' == ''">x64</Platform>
+    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">win-x64</RuntimeIdentifier>
   </PropertyGroup>
   <ItemGroup>
     <Content Include="Assets\SplashScreen.scale-200.png" />
@@ -60,4 +62,13 @@
     <PublishTrimmed Condition="'$(Configuration)' == 'Debug'">False</PublishTrimmed>
     <PublishTrimmed Condition="'$(Configuration)' != 'Debug'">True</PublishTrimmed>
   </PropertyGroup>
+
+  <Target Name="IncludeFallbackXamlGeneratedFiles" BeforeTargets="CoreCompile">
+    <PropertyGroup>
+      <_MainWindowGeneratedFile>$(IntermediateOutputPath)$(RuntimeIdentifier)\MainWindow.g.i.cs</_MainWindowGeneratedFile>
+    </PropertyGroup>
+    <ItemGroup Condition="!Exists('$(_MainWindowGeneratedFile)')">
+      <Compile Include="Generated\MainWindow.g.i.cs" Link="MainWindow.g.i.cs" />
+    </ItemGroup>
+  </Target>
 </Project>
