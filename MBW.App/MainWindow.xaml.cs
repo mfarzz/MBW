@@ -216,7 +216,8 @@ namespace MBW.App
                 or nameof(ShellViewModel.StatusWorkspaceName)
                 or nameof(ShellViewModel.WorkspaceSavedText)
                 or nameof(ShellViewModel.SmtpStatusText)
-                or nameof(ShellViewModel.SmtpIsConnected))
+                or nameof(ShellViewModel.SmtpIsConnected)
+                or nameof(ShellViewModel.DatabaseStatusText))
             {
                 SyncShellLabels();
             }
@@ -249,6 +250,11 @@ namespace MBW.App
                 smtpDot.Fill = _shellViewModel.SmtpIsConnected
                     ? GetThemeBrush("SystemFillColorSuccess")
                     : GetThemeBrush("SystemFillColorCritical");
+            }
+
+            if (FindElement<TextBlock>("DatabaseStatusText") is TextBlock databaseStatus)
+            {
+                databaseStatus.Text = _shellViewModel.DatabaseStatusText;
             }
         }
 

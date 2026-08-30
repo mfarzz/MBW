@@ -90,6 +90,8 @@ namespace MBW.Infrastructure.Storage
             public string? Description { get; set; }
             public EmailTemplateDto? Template { get; set; }
             public string? DataFilePath { get; set; }
+            public string? DataSheetName { get; set; }
+            public int DataHeaderRow { get; set; } = 1;
             public string? AttachmentsFolder { get; set; }
             public SendConfigurationDto? Configuration { get; set; }
             public Dictionary<string, string>? Metadata { get; set; }
@@ -110,6 +112,8 @@ namespace MBW.Infrastructure.Storage
                     // HtmlBody saved separately to email.html
                 } : null;
                 DataFilePath = model.DataFilePath;
+                DataSheetName = model.DataSheetName;
+                DataHeaderRow = model.DataHeaderRow > 0 ? model.DataHeaderRow : 1;
                 AttachmentsFolder = model.AttachmentsFolder;
                 Configuration = model.Configuration != null ? new SendConfigurationDto
                 {
@@ -132,6 +136,8 @@ namespace MBW.Infrastructure.Storage
                     Name = Name,
                     Description = Description,
                     DataFilePath = DataFilePath,
+                    DataSheetName = DataSheetName,
+                    DataHeaderRow = DataHeaderRow > 0 ? DataHeaderRow : 1,
                     AttachmentsFolder = AttachmentsFolder
                 };
 

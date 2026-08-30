@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using MBW.Core.Interfaces;
 using MBW.Core.Models;
 using MBW.Core.Services;
+using Microsoft.UI.Xaml;
 using System;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
@@ -29,11 +30,22 @@ namespace MBW.App.ViewModels
         [ObservableProperty]
         public partial ObservableCollection<string> AvailableVariables { get; set; } = new();
 
+        public ObservableCollection<string> FilteredVariables { get; } = new();
+
+        [ObservableProperty]
+        public partial string VariableSearchQuery { get; set; } = string.Empty;
+
         [ObservableProperty]
         public partial string StatusMessage { get; set; } = "Ready";
 
         [ObservableProperty]
-        public partial Microsoft.UI.Xaml.Visibility NoVariablesVisibility { get; set; } = Microsoft.UI.Xaml.Visibility.Collapsed;
+        public partial Visibility NoVariablesVisibility { get; set; } = Visibility.Collapsed;
+
+        [ObservableProperty]
+        public partial Visibility VariablesPanelVisibility { get; set; } = Visibility.Collapsed;
+
+        [ObservableProperty]
+        public partial Visibility NoSearchResultsVisibility { get; set; } = Visibility.Collapsed;
 
         [ObservableProperty]
         public partial bool IsLoading { get; set; } = false;
@@ -108,18 +120,19 @@ namespace MBW.App.ViewModels
                     var dataPath = _workspaceCoordinator.GetResolvedDataFilePath();
                     if (!string.IsNullOrEmpty(dataPath))
                     {
-                        await LoadExcelHeadersAsync(dataPath);
+                        await LoadExcelHeadersAsync(
+                            dataPath,
+                            _workspaceCoordinator.GetDataSheetName(),
+                            _workspaceCoordinator.GetDataHeaderRow());
                     }
                     else
                     {
-                        AvailableVariables.Clear();
-                        NoVariablesVisibility = Microsoft.UI.Xaml.Visibility.Visible;
+                        ClearVariables();
                     }
                 }
                 else
                 {
-                    AvailableVariables.Clear();
-                    NoVariablesVisibility = Microsoft.UI.Xaml.Visibility.Visible;
+                    ClearVariables();
                 }
 
                 StatusMessage = "Ready";
@@ -134,11 +147,11 @@ namespace MBW.App.ViewModels
             }
         }
 
-        private async Task LoadExcelHeadersAsync(string filePath)
+        private async Task LoadExcelHeadersAsync(string filePath, string? sheetName = null, int headerRow = 1)
         {
             try
             {
-                var headers = await _excelImporter.GetHeadersAsync(filePath);
+                var headers = await _excelImporter.GetHeadersAsync(filePath, sheetName, headerRow);
                 AvailableVariables.Clear();
 
                 foreach (var header in headers)
@@ -146,15 +159,49 @@ namespace MBW.App.ViewModels
                     AvailableVariables.Add(header);
                 }
 
-                NoVariablesVisibility = AvailableVariables.Count == 0
-                    ? Microsoft.UI.Xaml.Visibility.Visible
-                    : Microsoft.UI.Xaml.Visibility.Collapsed;
+                UpdateVariablesUiState();
                 StatusMessage = $"Loaded {headers.Count} variables from Excel";
             }
             catch (Exception ex)
             {
                 StatusMessage = $"Error loading Excel: {ex.Message}";
             }
+        }
+
+        partial void OnVariableSearchQueryChanged(string value) => RefreshFilteredVariables();
+
+        private void ClearVariables()
+        {
+            AvailableVariables.Clear();
+            VariableSearchQuery = string.Empty;
+            UpdateVariablesUiState();
+        }
+
+        private void UpdateVariablesUiState()
+        {
+            var hasVariables = AvailableVariables.Count > 0;
+            VariablesPanelVisibility = hasVariables ? Visibility.Visible : Visibility.Collapsed;
+            NoVariablesVisibility = hasVariables ? Visibility.Collapsed : Visibility.Visible;
+            RefreshFilteredVariables();
+        }
+
+        private void RefreshFilteredVariables()
+        {
+            FilteredVariables.Clear();
+            var query = VariableSearchQuery?.Trim() ?? string.Empty;
+
+            foreach (var variable in AvailableVariables)
+            {
+                if (string.IsNullOrEmpty(query)
+                    || variable.Contains(query, StringComparison.OrdinalIgnoreCase))
+                {
+                    FilteredVariables.Add(variable);
+                }
+            }
+
+            NoSearchResultsVisibility = AvailableVariables.Count > 0 && FilteredVariables.Count == 0
+                ? Visibility.Visible
+                : Visibility.Collapsed;
         }
 
         [RelayCommand]
@@ -213,7 +260,11 @@ namespace MBW.App.ViewModels
                 IsLoading = true;
                 StatusMessage = "Loading preview...";
 
-                var preview = await _excelImporter.PreviewAsync(dataPath, 1);
+                var preview = await _excelImporter.PreviewAsync(
+                    dataPath,
+                    1,
+                    _workspaceCoordinator.GetDataSheetName(),
+                    _workspaceCoordinator.GetDataHeaderRow());
 
                 if (preview.Count == 0)
                 {

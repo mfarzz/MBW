@@ -660,27 +660,74 @@
                     </Grid>
                 </Border>
 
-            <Grid Grid.Column="1" Padding="16,12" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
-                <StackPanel Spacing="12">
-                    <TextBlock Text="Available Variables" FontSize="13" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorPrimary}" />
-                    <ScrollViewer VerticalScrollBarVisibility="Auto">
-                        <ListView ItemsSource="{Binding AvailableVariables}" SelectionMode="None" Background="Transparent">
-                            <ListView.ItemTemplate>
-                                <DataTemplate x:DataType="x:String">
-                                    <Grid ColumnDefinitions="*,Auto" Padding="0,6" BorderBrush="{ThemeResource DividerStrokeColorDefault}" BorderThickness="0,0,0,1">
-                                        <TextBlock Grid.Column="0" Text="{Binding}" Foreground="{ThemeResource TextFillColorPrimary}" VerticalAlignment="Center" />
-                                        <Button Grid.Column="1" Content="Insert" Style="{StaticResource AccentButtonStyle}" Click="OnInsertVariableFromListClick" Tag="{Binding}" Padding="8,4" FontSize="12" />
-                                    </Grid>
-                                </DataTemplate>
-                            </ListView.ItemTemplate>
-                        </ListView>
-                    </ScrollViewer>
-                    <TextBlock Text="No variables. Import Excel file first." 
-                               Foreground="{ThemeResource TextFillColorSecondary}" 
-                               FontSize="12"
-                               FontStyle="Italic"
-                               Visibility="{Binding NoVariablesVisibility}" />
-                </StackPanel>
+            <Grid Grid.Column="1"
+                  Padding="16,12"
+                  Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
+                  RowDefinitions="Auto,Auto,*,Auto,Auto">
+                <TextBlock Grid.Row="0"
+                           Text="Available Variables"
+                           FontSize="13"
+                           FontWeight="SemiBold"
+                           Foreground="{ThemeResource TextFillColorPrimary}" />
+
+                <TextBox Grid.Row="1"
+                         Margin="0,8,0,8"
+                         PlaceholderText="Cari variabel..."
+                         Text="{Binding VariableSearchQuery, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         Visibility="{Binding VariablesPanelVisibility}" />
+
+                <ListView Grid.Row="2"
+                          ItemsSource="{Binding FilteredVariables}"
+                          SelectionMode="None"
+                          Background="Transparent">
+                    <ListView.ItemContainerStyle>
+                        <Style TargetType="ListViewItem">
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                            <Setter Property="Padding" Value="0" />
+                            <Setter Property="MinHeight" Value="36" />
+                        </Style>
+                    </ListView.ItemContainerStyle>
+                    <ListView.ItemTemplate>
+                        <DataTemplate x:DataType="x:String">
+                            <Grid ColumnDefinitions="*,Auto"
+                                  Padding="0,4"
+                                  ColumnSpacing="4">
+                                <TextBlock Grid.Column="0"
+                                           Text="{Binding}"
+                                           Foreground="{ThemeResource TextFillColorPrimary}"
+                                           VerticalAlignment="Center"
+                                           TextTrimming="CharacterEllipsis"
+                                           ToolTipService.ToolTip="{Binding}" />
+                                <Button Grid.Column="1"
+                                        Style="{StaticResource RibbonIconButtonStyle}"
+                                        Width="28"
+                                        Height="28"
+                                        ToolTipService.ToolTip="Sisipkan variabel"
+                                        Click="OnInsertVariableFromListClick"
+                                        Tag="{Binding}">
+                                    <FontIcon Glyph="&#xE710;" FontSize="14" />
+                                </Button>
+                            </Grid>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+
+                <TextBlock Grid.Row="3"
+                           Text="Tidak ada variabel yang cocok."
+                           Foreground="{ThemeResource TextFillColorSecondary}"
+                           FontSize="12"
+                           FontStyle="Italic"
+                           Margin="0,4,0,0"
+                           Visibility="{Binding NoSearchResultsVisibility}" />
+
+                <TextBlock Grid.Row="4"
+                           Text="Belum ada variabel. Import file Excel di menu Database."
+                           Foreground="{ThemeResource TextFillColorSecondary}"
+                           FontSize="12"
+                           FontStyle="Italic"
+                           Margin="0,8,0,0"
+                           TextWrapping="Wrap"
+                           Visibility="{Binding NoVariablesVisibility}" />
             </Grid>
         </Grid>
     </Grid>

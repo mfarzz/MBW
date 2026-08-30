@@ -32,6 +32,8 @@ namespace MBW.App.Composition
 
         public static WelcomeViewModel WelcomeViewModel { get; private set; } = null!;
 
+        private static DatabaseViewModel? _databaseViewModel;
+
         private static Window? _mainWindow;
 
         public static Window GetMainWindow() =>
@@ -62,10 +64,12 @@ namespace MBW.App.Composition
             _isInitialized = true;
         }
 
-        public static DatabaseViewModel CreateDatabaseViewModel()
+        public static DatabaseViewModel GetDatabaseViewModel()
         {
-            return new DatabaseViewModel(ExcelImporter, WorkspaceCoordinator);
+            return _databaseViewModel ??= new DatabaseViewModel(ExcelImporter, WorkspaceCoordinator);
         }
+
+        public static DatabaseViewModel CreateDatabaseViewModel() => GetDatabaseViewModel();
 
         public static EmailEditorViewModel CreateEmailEditorViewModel()
         {
@@ -74,7 +78,7 @@ namespace MBW.App.Composition
 
         public static ShellViewModel CreateShellViewModel()
         {
-            return new ShellViewModel(WorkspaceCoordinator, SmtpSettingsCoordinator, RecentProjectsService);
+            return new ShellViewModel(WorkspaceCoordinator, SmtpSettingsCoordinator, RecentProjectsService, ExcelImporter);
         }
 
         public static WelcomeViewModel CreateWelcomeViewModel()

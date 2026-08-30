@@ -109,7 +109,7 @@ namespace MBW.Core.Services
             Current.Template = template;
         }
 
-        public void UpdateDataFilePath(string relativePath)
+        public void UpdateDataFilePath(string relativePath, string? sheetName = null, int headerRow = 1)
         {
             if (Current is null || string.IsNullOrWhiteSpace(relativePath))
             {
@@ -117,6 +117,8 @@ namespace MBW.Core.Services
             }
 
             Current.DataFilePath = relativePath.Replace('\\', '/');
+            Current.DataSheetName = string.IsNullOrWhiteSpace(sheetName) ? null : sheetName.Trim();
+            Current.DataHeaderRow = headerRow > 0 ? headerRow : 1;
             Current.ModifiedAt = DateTimeOffset.UtcNow;
             Changed?.Invoke(this, EventArgs.Empty);
         }
@@ -136,6 +138,11 @@ namespace MBW.Core.Services
 
             return File.Exists(path) ? path : null;
         }
+
+        public string? GetDataSheetName() => Current?.DataSheetName;
+
+        public int GetDataHeaderRow() =>
+            Current is null || Current.DataHeaderRow < 1 ? 1 : Current.DataHeaderRow;
 
         private void SetSession(WorkspaceModel workspace, string path)
         {

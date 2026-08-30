@@ -12,19 +12,27 @@ namespace MBW.App.ViewModels
         private readonly WorkspaceCoordinator _workspaceCoordinator;
         private readonly SmtpSettingsCoordinator _smtpCoordinator;
         private readonly IRecentProjectsService _recentProjectsService;
+        private readonly IExcelImporter _excelImporter;
 
         public ShellViewModel(
             WorkspaceCoordinator workspaceCoordinator,
             SmtpSettingsCoordinator smtpCoordinator,
-            IRecentProjectsService recentProjectsService)
+            IRecentProjectsService recentProjectsService,
+            IExcelImporter excelImporter)
         {
             _workspaceCoordinator = workspaceCoordinator;
             _smtpCoordinator = smtpCoordinator;
             _recentProjectsService = recentProjectsService;
-            _workspaceCoordinator.Changed += (_, _) => SyncFromCoordinator(saved: true);
+            _excelImporter = excelImporter;
+            _workspaceCoordinator.Changed += (_, _) =>
+            {
+                SyncFromCoordinator(saved: true);
+                _ = SyncDatabaseStatusAsync();
+            };
             _smtpCoordinator.Changed += (_, _) => SyncSmtpFromCoordinator();
             SyncFromCoordinator(saved: false);
             SyncSmtpFromCoordinator();
+            _ = SyncDatabaseStatusAsync();
         }
 
         [ObservableProperty]
@@ -41,6 +49,9 @@ namespace MBW.App.ViewModels
 
         [ObservableProperty]
         public partial bool SmtpIsConnected { get; set; }
+
+        [ObservableProperty]
+        public partial string DatabaseStatusText { get; set; } = "Database: —";
 
         public event EventHandler? WorkspaceChanged;
 
@@ -138,6 +149,35 @@ namespace MBW.App.ViewModels
         {
             SmtpStatusText = _smtpCoordinator.StatusLabel;
             SmtpIsConnected = _smtpCoordinator.IsConnected;
+        }
+
+        private async Task SyncDatabaseStatusAsync()
+        {
+            if (!_workspaceCoordinator.HasWorkspace)
+            {
+                DatabaseStatusText = "Database: —";
+                return;
+            }
+
+            var dataPath = _workspaceCoordinator.GetResolvedDataFilePath();
+            if (string.IsNullOrWhiteSpace(dataPath))
+            {
+                DatabaseStatusText = "Database: belum diimport";
+                return;
+            }
+
+            try
+            {
+                var count = await _excelImporter.GetRowCountAsync(
+                    dataPath,
+                    _workspaceCoordinator.GetDataSheetName(),
+                    _workspaceCoordinator.GetDataHeaderRow());
+                DatabaseStatusText = $"Database: {count:N0} baris";
+            }
+            catch
+            {
+                DatabaseStatusText = "Database: gagal dimuat";
+            }
         }
     }
 }

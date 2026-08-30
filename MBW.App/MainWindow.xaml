@@ -212,7 +212,7 @@
                 <Ellipse Width="6" Height="6" Fill="{ThemeResource SystemFillColorSuccess}" VerticalAlignment="Center" />
                 <TextBlock Text="SMTP: Connected" Foreground="White" FontSize="11" VerticalAlignment="Center" />
             </StackPanel>
-            <TextBlock Grid.Column="1" Text="Database: 1,245 rows" Foreground="White" FontSize="11" Margin="16,0,0,0" VerticalAlignment="Center" />
+            <TextBlock x:Name="DatabaseStatusText" Grid.Column="1" Text="Database: —" Foreground="White" FontSize="11" Margin="16,0,0,0" VerticalAlignment="Center" />
             <TextBlock Grid.Column="2" Text="Attachments: 1,240 matched" Foreground="White" FontSize="11" Margin="16,0,0,0" VerticalAlignment="Center" />
             <TextBlock x:Name="StatusWorkspaceText" Grid.Column="4" Text="Seminar-FTI" Foreground="White" FontSize="11" Margin="0,0,16,0" VerticalAlignment="Center" />
             <TextBlock Grid.Column="5" Text="UTF-8" Foreground="White" FontSize="11" Margin="0,0,16,0" VerticalAlignment="Center" />

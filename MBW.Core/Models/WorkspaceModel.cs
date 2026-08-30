@@ -10,6 +10,8 @@ namespace MBW.Core.Models
         public string? Description { get; set; }
         public EmailTemplate? Template { get; set; }
         public string? DataFilePath { get; set; }
+        public string? DataSheetName { get; set; }
+        public int DataHeaderRow { get; set; } = 1;
         public string? AttachmentsFolder { get; set; }
         public SendConfiguration? Configuration { get; set; }
         public IDictionary<string, string> Metadata { get; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);

@@ -13,115 +13,139 @@ namespace MBW.Infrastructure.Excel
 {
     public class ExcelImporter : IExcelImporter
     {
-        public async Task<IReadOnlyList<string>> GetHeadersAsync(string filePath, CancellationToken cancellationToken = default)
+        public async Task<IReadOnlyList<string>> GetSheetNamesAsync(string filePath, CancellationToken cancellationToken = default)
         {
-            if (string.IsNullOrWhiteSpace(filePath))
-                throw new ArgumentException("File path cannot be empty", nameof(filePath));
-            if (!File.Exists(filePath))
-                throw new FileNotFoundException($"Excel file not found: {filePath}");
+            EnsureFileExists(filePath);
 
             return await Task.Run(() =>
             {
                 using var workbook = new XLWorkbook(filePath);
-                var worksheet = workbook.Worksheet(1);
-
-                var headers = new List<string>();
-                var headerRow = worksheet.Row(1);
-
-                foreach (var cell in headerRow.Cells())
-                {
-                    var headerValue = cell.GetValue<string>()?.Trim() ?? string.Empty;
-                    if (string.IsNullOrEmpty(headerValue))
-                        break; // Stop at first empty column header
-
-                    headers.Add(headerValue);
-                }
-
-                return (IReadOnlyList<string>)headers.AsReadOnly();
+                return (IReadOnlyList<string>)workbook.Worksheets
+                    .Select(ws => ws.Name)
+                    .ToList()
+                    .AsReadOnly();
             }, cancellationToken);
         }
 
-        public async Task<IReadOnlyList<RecipientRow>> PreviewAsync(string filePath, int maxRows = 10, CancellationToken cancellationToken = default)
+        public async Task<IReadOnlyList<string>> GetHeadersAsync(
+            string filePath,
+            string? sheetName = null,
+            int headerRow = 1,
+            CancellationToken cancellationToken = default)
         {
-            if (string.IsNullOrWhiteSpace(filePath))
-                throw new ArgumentException("File path cannot be empty", nameof(filePath));
-            if (!File.Exists(filePath))
-                throw new FileNotFoundException($"Excel file not found: {filePath}");
+            EnsureFileExists(filePath);
+            EnsureHeaderRow(headerRow);
+
+            return await Task.Run(() =>
+            {
+                using var workbook = new XLWorkbook(filePath);
+                var worksheet = ResolveWorksheet(workbook, sheetName);
+                return (IReadOnlyList<string>)ExtractHeaders(worksheet, headerRow).AsReadOnly();
+            }, cancellationToken);
+        }
+
+        public async Task<IReadOnlyList<RecipientRow>> PreviewAsync(
+            string filePath,
+            int maxRows = 10,
+            string? sheetName = null,
+            int headerRow = 1,
+            CancellationToken cancellationToken = default)
+        {
+            var preview = await PreviewSheetAsync(filePath, sheetName, maxRows, headerRow, cancellationToken);
+            return preview.Rows;
+        }
+
+        public async Task<ExcelSheetPreview> PreviewSheetAsync(
+            string filePath,
+            string? sheetName = null,
+            int maxRows = 10,
+            int headerRow = 1,
+            CancellationToken cancellationToken = default)
+        {
+            EnsureFileExists(filePath);
+            EnsureHeaderRow(headerRow);
             if (maxRows <= 0)
+            {
                 throw new ArgumentException("MaxRows must be greater than 0", nameof(maxRows));
-
-            return await Task.Run(() =>
-            {
-                using var workbook = new XLWorkbook(filePath);
-                var worksheet = workbook.Worksheet(1);
-
-                var headers = ExtractHeaders(worksheet);
-                var rows = new List<RecipientRow>();
-
-                int rowCount = 0;
-                foreach (var row in worksheet.RowsUsed())
-                {
-                    if (row.RowNumber() == 1) continue; // Skip header
-                    if (rowCount >= maxRows) break;
-
-                    var recipientRow = CreateRecipientRow(row.RowNumber(), row, headers);
-                    if (recipientRow != null)
-                    {
-                        rows.Add(recipientRow);
-                        rowCount++;
-                    }
-                }
-
-                return (IReadOnlyList<RecipientRow>)rows.AsReadOnly();
-            }, cancellationToken);
-        }
-
-        public async Task<long> GetRowCountAsync(string filePath, CancellationToken cancellationToken = default)
-        {
-            if (string.IsNullOrWhiteSpace(filePath))
-            {
-                throw new ArgumentException("File path cannot be empty", nameof(filePath));
-            }
-
-            if (!File.Exists(filePath))
-            {
-                throw new FileNotFoundException($"Excel file not found: {filePath}");
             }
 
             return await Task.Run(() =>
             {
                 using var workbook = new XLWorkbook(filePath);
-                var worksheet = workbook.Worksheet(1);
-                var lastRow = worksheet.LastRowUsed()?.RowNumber() ?? 1;
-                return Math.Max(0L, lastRow - 1L);
+                var worksheet = ResolveWorksheet(workbook, sheetName);
+                var headers = ExtractHeaders(worksheet, headerRow);
+                var totalRows = CountDataRows(worksheet, headerRow);
+                var rows = ReadRows(worksheet, headers, headerRow, skip: 0, take: maxRows);
+
+                return new ExcelSheetPreview(worksheet.Name, headers, rows, totalRows, headerRow);
             }, cancellationToken);
         }
 
-        public async IAsyncEnumerable<RecipientRow> ReadAllAsync(string filePath, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        public async Task<ExcelPageResult> GetPageAsync(
+            string filePath,
+            int page,
+            int pageSize = 50,
+            string? sheetName = null,
+            int headerRow = 1,
+            CancellationToken cancellationToken = default)
         {
-            if (string.IsNullOrWhiteSpace(filePath))
-                throw new ArgumentException("File path cannot be empty", nameof(filePath));
-            if (!File.Exists(filePath))
-                throw new FileNotFoundException($"Excel file not found: {filePath}");
+            EnsureFileExists(filePath);
+            EnsureHeaderRow(headerRow);
+            if (page < 1)
+            {
+                throw new ArgumentException("Page must be greater than 0", nameof(page));
+            }
+
+            if (pageSize <= 0)
+            {
+                throw new ArgumentException("PageSize must be greater than 0", nameof(pageSize));
+            }
+
+            return await Task.Run(() =>
+            {
+                using var workbook = new XLWorkbook(filePath);
+                var worksheet = ResolveWorksheet(workbook, sheetName);
+                var headers = ExtractHeaders(worksheet, headerRow);
+                var totalRows = CountDataRows(worksheet, headerRow);
+                var skip = (page - 1) * pageSize;
+                var rows = ReadRows(worksheet, headers, headerRow, skip, pageSize);
+
+                return new ExcelPageResult(headers, rows, totalRows, page, pageSize);
+            }, cancellationToken);
+        }
+
+        public async Task<long> GetRowCountAsync(
+            string filePath,
+            string? sheetName = null,
+            int headerRow = 1,
+            CancellationToken cancellationToken = default)
+        {
+            EnsureFileExists(filePath);
+            EnsureHeaderRow(headerRow);
+
+            return await Task.Run(() =>
+            {
+                using var workbook = new XLWorkbook(filePath);
+                var worksheet = ResolveWorksheet(workbook, sheetName);
+                return CountDataRows(worksheet, headerRow);
+            }, cancellationToken);
+        }
+
+        public async IAsyncEnumerable<RecipientRow> ReadAllAsync(
+            string filePath,
+            string? sheetName = null,
+            int headerRow = 1,
+            [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            EnsureFileExists(filePath);
+            EnsureHeaderRow(headerRow);
 
             var rows = await Task.Run(() =>
             {
                 using var workbook = new XLWorkbook(filePath);
-                var worksheet = workbook.Worksheet(1);
-
-                var headers = ExtractHeaders(worksheet);
-                var result = new List<RecipientRow>();
-
-                foreach (var row in worksheet.RowsUsed())
-                {
-                    if (row.RowNumber() == 1) continue; // Skip header
-
-                    var recipientRow = CreateRecipientRow(row.RowNumber(), row, headers);
-                    if (recipientRow != null)
-                        result.Add(recipientRow);
-                }
-
-                return result;
+                var worksheet = ResolveWorksheet(workbook, sheetName);
+                var headers = ExtractHeaders(worksheet, headerRow);
+                return ReadRows(worksheet, headers, headerRow, skip: 0, take: int.MaxValue);
             }, cancellationToken);
 
             foreach (var row in rows)
@@ -130,16 +154,34 @@ namespace MBW.Infrastructure.Excel
             }
         }
 
-        private static List<string> ExtractHeaders(IXLWorksheet worksheet)
+        private static IXLWorksheet ResolveWorksheet(XLWorkbook workbook, string? sheetName)
+        {
+            if (string.IsNullOrWhiteSpace(sheetName))
+            {
+                return workbook.Worksheet(1);
+            }
+
+            if (!workbook.Worksheets.TryGetWorksheet(sheetName, out var worksheet))
+            {
+                throw new ArgumentException($"Sheet \"{sheetName}\" was not found in the workbook.", nameof(sheetName));
+            }
+
+            return worksheet;
+        }
+
+        private static List<string> ExtractHeaders(IXLWorksheet worksheet, int headerRow)
         {
             var headers = new List<string>();
-            var headerRow = worksheet.Row(1);
+            var row = worksheet.Row(headerRow);
+            var lastColumn = row.LastCellUsed()?.Address.ColumnNumber ?? 0;
 
-            foreach (var cell in headerRow.Cells())
+            for (var column = 1; column <= lastColumn; column++)
             {
-                var headerValue = cell.GetValue<string>()?.Trim() ?? string.Empty;
+                var headerValue = row.Cell(column).GetFormattedString()?.Trim() ?? string.Empty;
                 if (string.IsNullOrEmpty(headerValue))
-                    break; // Stop at first empty column header
+                {
+                    break;
+                }
 
                 headers.Add(headerValue);
             }
@@ -147,21 +189,76 @@ namespace MBW.Infrastructure.Excel
             return headers;
         }
 
-        private static RecipientRow? CreateRecipientRow(long rowNumber, IXLRow row, List<string> headers)
+        private static long CountDataRows(IXLWorksheet worksheet, int headerRow)
         {
-            if (headers.Count == 0)
-                return null;
+            var lastRow = worksheet.LastRowUsed()?.RowNumber() ?? headerRow;
+            return Math.Max(0L, lastRow - headerRow);
+        }
 
-            var fields = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-
-            for (int i = 0; i < headers.Count; i++)
+        private static IReadOnlyList<RecipientRow> ReadRows(
+            IXLWorksheet worksheet,
+            IReadOnlyList<string> headers,
+            int headerRow,
+            int skip,
+            int take)
+        {
+            if (headers.Count == 0 || take <= 0)
             {
-                var cellValue = row.Cell(i + 1).GetValue<string>()?.Trim() ?? string.Empty;
-                fields[headers[i]] = cellValue;
+                return Array.Empty<RecipientRow>();
             }
 
-            // Return row even if all fields are empty (caller may filter)
+            var rows = new List<RecipientRow>();
+            var lastRow = worksheet.LastRowUsed()?.RowNumber() ?? headerRow;
+            var startRow = headerRow + 1 + skip;
+            var endRow = Math.Min(lastRow, startRow + take - 1);
+
+            for (var rowNumber = startRow; rowNumber <= endRow; rowNumber++)
+            {
+                var recipient = CreateRecipientRow(rowNumber, worksheet.Row(rowNumber), headers);
+                if (recipient is not null)
+                {
+                    rows.Add(recipient);
+                }
+            }
+
+            return rows;
+        }
+
+        private static RecipientRow? CreateRecipientRow(long rowNumber, IXLRow row, IReadOnlyList<string> headers)
+        {
+            if (headers.Count == 0)
+            {
+                return null;
+            }
+
+            var fields = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            for (var i = 0; i < headers.Count; i++)
+            {
+                fields[headers[i]] = row.Cell(i + 1).GetFormattedString()?.Trim() ?? string.Empty;
+            }
+
             return new RecipientRow(rowNumber, fields);
+        }
+
+        private static void EnsureFileExists(string filePath)
+        {
+            if (string.IsNullOrWhiteSpace(filePath))
+            {
+                throw new ArgumentException("File path cannot be empty", nameof(filePath));
+            }
+
+            if (!File.Exists(filePath))
+            {
+                throw new FileNotFoundException($"Excel file not found: {filePath}");
+            }
+        }
+
+        private static void EnsureHeaderRow(int headerRow)
+        {
+            if (headerRow < 1)
+            {
+                throw new ArgumentException("Header row must be greater than 0", nameof(headerRow));
+            }
         }
     }
 }

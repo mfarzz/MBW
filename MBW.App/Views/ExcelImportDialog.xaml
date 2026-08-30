@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentDialog
+    x:Class="MBW.App.Views.ExcelImportDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Import Excel"
+    PrimaryButtonText="Gunakan sheet ini"
+    CloseButtonText="Batal"
+    DefaultButton="Primary"
+    PrimaryButtonClick="ContentDialog_PrimaryButtonClick">
+
+    <Grid MinWidth="720" MinHeight="420" MaxWidth="900" MaxHeight="560">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0" Margin="0,0,0,12">
+            <StackPanel Spacing="4" Margin="0,0,28,0">
+                <TextBlock x:Name="FileNameText" FontWeight="SemiBold" />
+                <TextBlock x:Name="StatusText"
+                           FontSize="12"
+                           Foreground="{ThemeResource TextFillColorSecondary}"
+                           TextWrapping="Wrap" />
+            </StackPanel>
+            <ProgressRing x:Name="BusyRing"
+                          Width="20"
+                          Height="20"
+                          HorizontalAlignment="Right"
+                          VerticalAlignment="Top" />
+        </Grid>
+
+        <Grid Grid.Row="1" ColumnSpacing="16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="220" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0" Spacing="8">
+                <TextBlock Text="Sheet" FontWeight="SemiBold" FontSize="12" />
+                <ListView x:Name="SheetList"
+                          Height="280"
+                          SelectionMode="Single"
+                          SelectionChanged="SheetList_SelectionChanged" />
+
+                <TextBlock Text="Baris header" FontWeight="SemiBold" FontSize="12" Margin="0,8,0,0" />
+                <ComboBox x:Name="HeaderRowCombo"
+                          Width="120"
+                          HorizontalAlignment="Left"
+                          SelectionChanged="HeaderRowCombo_SelectionChanged" />
+            </StackPanel>
+
+            <Grid Grid.Column="1" RowSpacing="8">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Text="Preview (10 baris pertama)" FontWeight="SemiBold" FontSize="12" />
+                <Border Grid.Row="1"
+                        BorderBrush="{ThemeResource CardStrokeColorDefault}"
+                        BorderThickness="1"
+                        Background="{ThemeResource CardBackgroundFillColorDefault}">
+                    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                        <StackPanel x:Name="PreviewHost" Spacing="0" MinWidth="360" />
+                    </ScrollViewer>
+                </Border>
+                <TextBlock x:Name="SummaryText"
+                           Grid.Row="2"
+                           FontSize="12"
+                           Foreground="{ThemeResource TextFillColorSecondary}" />
+            </Grid>
+        </Grid>
+    </Grid>
+</ContentDialog>

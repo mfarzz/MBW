@@ -216,7 +216,6 @@ namespace MBW.App.Views
             {
                 await HtmlEditor.EnsureCoreWebView2Async();
                 HtmlEditor.CoreWebView2.Settings.IsWebMessageEnabled = true;
-                HtmlEditor.CoreWebView2.Settings.IsSpellCheckEnabled = false;
                 HtmlEditor.CoreWebView2.WebMessageReceived += CoreWebView2_WebMessageReceived;
                 HtmlEditor.CoreWebView2.NavigationCompleted += CoreWebView2_NavigationCompleted;
                 HtmlEditor.CoreWebView2.NavigationStarting += CoreWebView2_NavigationStarting;
