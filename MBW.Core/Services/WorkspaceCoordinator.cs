@@ -64,6 +64,17 @@ namespace MBW.Core.Services
                 return false;
             }
 
+            return await OpenFromPathAsync(workspacePath, cancellationToken);
+        }
+
+        public async Task<bool> OpenFromPathAsync(string workspacePath, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(workspacePath) || !Directory.Exists(workspacePath))
+            {
+                await _uiGateway.ShowMessageAsync("Not found", "The workspace folder could not be found.", cancellationToken);
+                return false;
+            }
+
             if (!File.Exists(System.IO.Path.Combine(workspacePath, "workspace.json")))
             {
                 await _uiGateway.ShowMessageAsync("Invalid workspace", "The selected folder is not a valid MBW workspace.", cancellationToken);
@@ -96,6 +107,34 @@ namespace MBW.Core.Services
             }
 
             Current.Template = template;
+        }
+
+        public void UpdateDataFilePath(string relativePath)
+        {
+            if (Current is null || string.IsNullOrWhiteSpace(relativePath))
+            {
+                return;
+            }
+
+            Current.DataFilePath = relativePath.Replace('\\', '/');
+            Current.ModifiedAt = DateTimeOffset.UtcNow;
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
+
+        public string? GetResolvedDataFilePath()
+        {
+            if (!HasWorkspace || string.IsNullOrWhiteSpace(Current!.DataFilePath))
+            {
+                return null;
+            }
+
+            var path = Current.DataFilePath;
+            if (!Path.IsPathRooted(path))
+            {
+                path = Path.Combine(WorkspacePath!, path);
+            }
+
+            return File.Exists(path) ? path : null;
         }
 
         private void SetSession(WorkspaceModel workspace, string path)

@@ -23,7 +23,8 @@ namespace MBW.App
         private readonly Dictionary<string, IconElement> _navIcons = new();
         private readonly ShellViewModel _shellViewModel;
         private bool _isConfigurationOpen = true;
-        private string _currentTag = "Email";
+        private bool _isProjectOpen;
+        private string _currentTag = "Welcome";
 
         public ShellViewModel ShellViewModel => _shellViewModel;
 
@@ -34,15 +35,15 @@ namespace MBW.App
             AppServices.Initialize(this);
             _shellViewModel = AppServices.CreateShellViewModel();
             _shellViewModel.PropertyChanged += ShellViewModel_PropertyChanged;
-            _shellViewModel.WorkspaceChanged += (_, _) => _ = OnWorkspaceChangedAsync();
+            _shellViewModel.WorkspaceChanged += (_, _) => EnterProjectMode();
             _shellViewModel.NavigationRequested += (_, tag) => NavigateFromWorkspaceMenu(tag);
+            AppServices.WelcomeViewModel.ProjectOpened += (_, _) => EnterProjectMode();
             SyncShellLabels();
 
             ConfigureTitleBar();
             RegisterNavElements();
 
-            NavigateToTag("Email");
-            RefreshShellState();
+            ShowWelcomeScreen();
             _ = _shellViewModel.InitializeAsync();
         }
 
@@ -197,7 +198,7 @@ namespace MBW.App
 
         private async Task SaveWorkspaceFromMenuAsync()
         {
-            SyncEmailEditorToCoordinator();
+            await SyncEmailEditorToCoordinator();
             await _shellViewModel.SaveWorkspaceAsync();
         }
 
@@ -251,10 +252,73 @@ namespace MBW.App
             }
         }
 
-        private async Task OnWorkspaceChangedAsync()
+        private void EnterProjectMode()
         {
+            if (_isProjectOpen)
+            {
+                _ = ReloadEmailEditorAsync();
+                return;
+            }
+
+            _isProjectOpen = true;
+            SetShellChromeVisible(true);
             NavigateToTag("Email");
-            await ReloadEmailEditorAsync();
+            _ = ReloadEmailEditorAsync();
+        }
+
+        private void ShowWelcomeScreen()
+        {
+            _isProjectOpen = false;
+            SetShellChromeVisible(false);
+            NavigateToWelcome();
+        }
+
+        private void SetShellChromeVisible(bool visible)
+        {
+            var chromeVisibility = visible ? Visibility.Visible : Visibility.Collapsed;
+            var sidebarWidth = visible
+                ? (GridLength)Application.Current.Resources["ShellSidebarWidth"]
+                : new GridLength(0);
+            var statusBarHeight = visible
+                ? (GridLength)Application.Current.Resources["ShellStatusBarHeight"]
+                : new GridLength(0);
+
+            SidebarColumn.Width = sidebarWidth;
+            StatusBarRow.Height = statusBarHeight;
+
+            ShellSidebarPanel.Visibility = chromeVisibility;
+            ShellStatusBar.Visibility = chromeVisibility;
+            ShellBodyGrid.BorderThickness = visible ? new Thickness(0, 1, 0, 0) : new Thickness(0);
+
+            if (FindElement<Button>("WorkspaceMenuButton") is Button workspaceMenu)
+            {
+                workspaceMenu.Visibility = chromeVisibility;
+            }
+
+            if (FindElement<Button>("SmtpButton") is Button smtpButton)
+            {
+                smtpButton.Visibility = chromeVisibility;
+            }
+
+            Grid.SetColumn(RootFrame, visible ? 1 : 0);
+            Grid.SetColumnSpan(RootFrame, visible ? 1 : 2);
+            RootFrame.Background = visible
+                ? GetThemeBrush("ApplicationPageBackgroundThemeBrush")
+                : Application.Current.Resources["MBWStatusBarBrush"] as Brush ?? TransparentBrush;
+
+            RootLayoutGrid.Background = visible
+                ? Application.Current.Resources["MBWSidebarBrush"] as Brush ?? TransparentBrush
+                : Application.Current.Resources["MBWStatusBarBrush"] as Brush ?? TransparentBrush;
+        }
+
+        private void NavigateToWelcome()
+        {
+            if (RootFrame.CurrentSourcePageType != typeof(WelcomePage))
+            {
+                RootFrame.Navigate(typeof(WelcomePage));
+            }
+
+            _currentTag = "Welcome";
         }
 
         private async Task ReloadEmailEditorAsync()
@@ -271,14 +335,17 @@ namespace MBW.App
             }
         }
 
-        private void SyncEmailEditorToCoordinator()
+        private async Task SyncEmailEditorToCoordinator()
         {
-            if (RootFrame.Content is not FrameworkElement { DataContext: EmailEditorViewModel viewModel })
+            if (RootFrame.Content is EmailEditorPage page)
             {
-                return;
+                await page.SyncEditorToViewModelAsync();
             }
 
-            _shellViewModel.ApplyEmailTemplate(viewModel.GetCurrentTemplate());
+            if (RootFrame.Content is FrameworkElement { DataContext: EmailEditorViewModel viewModel })
+            {
+                _shellViewModel.ApplyEmailTemplate(await viewModel.GetCurrentTemplateAsync());
+            }
         }
 
         private async void SmtpButton_Click(object sender, RoutedEventArgs e)
@@ -338,8 +405,14 @@ namespace MBW.App
 
         private void NavigateToTag(string tag)
         {
+            if (!_isProjectOpen && tag != "Welcome")
+            {
+                return;
+            }
+
             var pageType = tag switch
             {
+                "Welcome" => typeof(WelcomePage),
                 "Email" => typeof(EmailEditorPage),
                 "Database" => typeof(DatabasePage),
                 "Attachments" => typeof(AttachmentsPage),
@@ -349,7 +422,7 @@ namespace MBW.App
                 _ => typeof(EmailEditorPage)
             };
 
-            if (RootFrame.CurrentSourcePageType != pageType)
+            if (RootFrame.CurrentSourcePageType != pageType || tag is "Matching" or "Rename" or "Sending")
             {
                 RootFrame.Navigate(pageType, tag);
             }
@@ -360,6 +433,10 @@ namespace MBW.App
 
         private void RefreshShellState()
         {
+            if (!_isProjectOpen || _currentTag == "Welcome")
+            {
+                return;
+            }
             if (FindElement<FrameworkElement>("ConfigurationItemsPanel") is FrameworkElement panel)
             {
                 panel.Visibility = _isConfigurationOpen ? Visibility.Visible : Visibility.Collapsed;

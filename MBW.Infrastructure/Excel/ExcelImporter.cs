@@ -76,6 +76,27 @@ namespace MBW.Infrastructure.Excel
             }, cancellationToken);
         }
 
+        public async Task<long> GetRowCountAsync(string filePath, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(filePath))
+            {
+                throw new ArgumentException("File path cannot be empty", nameof(filePath));
+            }
+
+            if (!File.Exists(filePath))
+            {
+                throw new FileNotFoundException($"Excel file not found: {filePath}");
+            }
+
+            return await Task.Run(() =>
+            {
+                using var workbook = new XLWorkbook(filePath);
+                var worksheet = workbook.Worksheet(1);
+                var lastRow = worksheet.LastRowUsed()?.RowNumber() ?? 1;
+                return Math.Max(0L, lastRow - 1L);
+            }, cancellationToken);
+        }
+
         public async IAsyncEnumerable<RecipientRow> ReadAllAsync(string filePath, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(filePath))

@@ -5,64 +5,351 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Email Editor</title>
     <style>
-        * {
-            box-sizing: border-box;
-        }
+        * { box-sizing: border-box; }
 
-        body {
+        html, body {
             margin: 0;
             padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
-            background-color: #ffffff;
+            height: 100%;
+            background: #f3f3f3;
+            font-family: 'Segoe UI', 'Helvetica Neue', sans-serif;
+        }
+
+        #canvas-scroll {
+            height: 100%;
+            overflow: auto;
+            padding: 24px 16px 32px;
+        }
+
+        #editor-page {
+            max-width: 816px;
+            min-height: 640px;
+            margin: 0 auto;
+            background: #ffffff;
+            box-shadow: 0 1px 6px rgba(0, 0, 0, 0.12);
+            border: 1px solid #e0e0e0;
         }
 
         #editor {
-            width: 100%;
-            min-height: 300px;
-            padding: 16px;
-            border: none;
+            min-height: 640px;
+            padding: 48px 56px;
             outline: none;
             font-size: 14px;
             line-height: 1.6;
-            color: #333;
-            background-color: #ffffff;
+            color: #1b1b1b;
             word-wrap: break-word;
-            white-space: pre-wrap;
         }
 
-        #editor:focus {
-            outline: none;
+        #editor:focus { outline: none; }
+
+        #editor span[style*="font-size"] {
+            line-height: inherit;
+            vertical-align: baseline;
+            display: inline;
+        }
+
+        #editor font {
+            line-height: inherit;
+            vertical-align: baseline;
+        }
+
+        #editor p {
+            margin: 0 0 10px;
+            position: relative;
+        }
+
+        #editor p::after {
+            content: "";
+            display: table;
+            clear: both;
+        }
+
+        #editor img {
+            max-width: 100%;
+            height: auto;
+            vertical-align: bottom;
+        }
+
+        #editor table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 0 0 10px;
+            table-layout: fixed;
+        }
+
+        #editor td,
+        #editor th {
+            border: 1px solid #bfbfbf;
+            padding: 6px 8px;
+            vertical-align: top;
+            min-width: 40px;
+        }
+
+        #editor img.mbw-image-object-active {
+            cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cg fill='%23ffffff' stroke='%23000000' stroke-width='1'%3E%3Cpath d='M16 3v4M16 25v4M3 16h4M25 16h4'/%3E%3Cpolygon points='16,1 13.5,5 18.5,5'/%3E%3Cpolygon points='16,31 13.5,27 18.5,27'/%3E%3Cpolygon points='1,16 5,13.5 5,18.5'/%3E%3Cpolygon points='31,16 27,13.5 27,18.5'/%3E%3Cpath d='M8 28 L8 11 L11.5 14.5 L14.5 9.5 L18.5 19.5 L15.5 17.5 L11 23 Z'/%3E%3C/g%3E%3C/svg%3E") 8 28, move;
+        }
+
+        .mbw-image-resize-frame {
+            position: fixed;
+            z-index: 9999;
+            border: 1px solid #0067c0;
+            box-sizing: border-box;
+            pointer-events: none;
+        }
+
+        .mbw-image-move-surface {
+            position: absolute;
+            inset: 0;
+            pointer-events: auto;
+            cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cg fill='%23ffffff' stroke='%23000000' stroke-width='1'%3E%3Cpath d='M16 3v4M16 25v4M3 16h4M25 16h4'/%3E%3Cpolygon points='16,1 13.5,5 18.5,5'/%3E%3Cpolygon points='16,31 13.5,27 18.5,27'/%3E%3Cpolygon points='1,16 5,13.5 5,18.5'/%3E%3Cpolygon points='31,16 27,13.5 27,18.5'/%3E%3Cpath d='M8 28 L8 11 L11.5 14.5 L14.5 9.5 L18.5 19.5 L15.5 17.5 L11 23 Z'/%3E%3C/g%3E%3C/svg%3E") 8 28, move;
+        }
+
+        .mbw-image-resize-handle {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #0067c0;
+            border: 1px solid #ffffff;
+            box-sizing: border-box;
+            pointer-events: auto;
+            z-index: 2;
+        }
+
+        .mbw-handle-nw { top: -4px; left: -4px; cursor: nwse-resize; }
+        .mbw-handle-ne { top: -4px; right: -4px; cursor: nesw-resize; }
+        .mbw-handle-sw { bottom: -4px; left: -4px; cursor: nesw-resize; }
+        .mbw-handle-se { bottom: -4px; right: -4px; cursor: nwse-resize; }
+
+        #editor a {
+            color: #0067c0;
+            text-decoration: underline;
+            cursor: text;
+        }
+
+        #editor.ctrl-held a[href] {
+            cursor: pointer;
         }
 
         .variable {
-            color: #0078D4;
-            font-weight: 500;
-            background-color: #E7F3FF;
-            padding: 2px 4px;
-            border-radius: 2px;
+            color: #0067c0;
+            font-weight: 600;
+            background-color: #e5f0fb;
+            padding: 1px 4px;
+            border-radius: 3px;
+            white-space: nowrap;
+        }
+
+        #editor::selection {
+            background-color: rgba(0, 103, 192, 0.22);
+        }
+
+        .mbw-context-root {
+            position: fixed;
+            z-index: 10000;
+            display: none;
+            flex-direction: column;
+            font-family: 'Segoe UI', 'Helvetica Neue', sans-serif;
+            filter: drop-shadow(0 4px 16px rgba(0, 0, 0, 0.14));
+        }
+
+        .mbw-context-root.is-open {
+            display: flex;
+        }
+
+        .mbw-context-mini {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            padding: 5px 6px;
+            background: #ffffff;
+            border: 1px solid #c8c8c8;
+            border-radius: 6px 6px 0 0;
+            width: max-content;
+        }
+
+        .mbw-context-mini-row {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .mbw-context-menu {
+            background: #ffffff;
+            border: 1px solid #c8c8c8;
+            border-top: none;
+            border-radius: 0 0 6px 6px;
+            min-width: 240px;
+            padding: 4px 0;
+        }
+
+        .mbw-context-menu-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 7px 14px;
+            font-size: 12px;
+            color: #1b1b1b;
             cursor: default;
             user-select: none;
-            -webkit-user-select: none;
-            white-space: nowrap;
-            display: inline-block;
         }
 
-        /* Selection styling */
-        #editor::selection {
-            background-color: rgba(0, 120, 212, 0.2);
+        .mbw-context-menu-item:hover:not(.disabled) {
+            background: #f3f3f3;
         }
 
-        /* Print styles */
-        @media print {
-            #editor {
-                border: none;
-                padding: 0;
-            }
+        .mbw-context-menu-item.disabled {
+            color: #a0a0a0;
+            pointer-events: none;
+        }
+
+        .mbw-context-shortcut {
+            color: #616161;
+            font-size: 11px;
+            margin-left: 28px;
+        }
+
+        .mbw-context-separator {
+            height: 1px;
+            background: #e5e5e5;
+            margin: 4px 0;
+        }
+
+        .mbw-mini-btn {
+            width: 28px;
+            height: 28px;
+            border: 1px solid transparent;
+            background: transparent;
+            border-radius: 4px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            line-height: 1;
+            cursor: default;
+            padding: 0;
+            color: #1b1b1b;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        .mbw-icon {
+            font-family: 'Segoe Fluent Icons', 'Segoe MDL2 Assets', sans-serif;
+            font-size: 16px;
+            line-height: 1;
+            font-weight: normal;
+            font-style: normal;
+            display: block;
+        }
+
+        .mbw-mini-svg {
+            width: 16px;
+            height: 16px;
+            display: block;
+            fill: currentColor;
+        }
+
+        .mbw-font-color-icon {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1px;
+            width: 14px;
+        }
+
+        .mbw-font-color-a {
+            font-size: 11px;
+            font-weight: 700;
+            line-height: 10px;
+        }
+
+        .mbw-font-color-bar {
+            width: 14px;
+            height: 3px;
+            border-radius: 1px;
+        }
+
+        .mbw-mini-btn:hover {
+            background: #ececec;
+            border-color: #dcdcdc;
+        }
+
+        .mbw-mini-btn.active {
+            background: #cce4f7;
+            border-color: #99c9ef;
+        }
+
+        .mbw-mini-grow {
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        .mbw-mini-shrink {
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        .mbw-context-menu-item-with-icon {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .mbw-context-menu-item-with-icon .mbw-icon {
+            font-size: 14px;
+            width: 16px;
+            text-align: center;
+            color: #444;
+        }
+
+        .mbw-mini-sep {
+            width: 1px;
+            height: 22px;
+            background: #d0d0d0;
+            margin: 0 3px;
+            flex-shrink: 0;
+        }
+
+        .mbw-mini-select {
+            height: 28px;
+            font-size: 12px;
+            border: 1px solid #c8c8c8;
+            border-radius: 4px;
+            padding: 0 6px;
+            background: #ffffff;
+            color: #1b1b1b;
+        }
+
+        .mbw-mini-font { width: 120px; }
+        .mbw-mini-size { width: 48px; }
+
+        .mbw-mini-color {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .mbw-mini-color-swatch {
+            width: 14px;
+            height: 14px;
+            border: 1px solid #888;
+            border-radius: 2px;
+            display: block;
+        }
+
+        .mbw-color-input {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+            pointer-events: none;
         }
     </style>
 </head>
 <body>
-    <div id="editor"></div>
-    <script src="setup-editor.js"></script>
+    <div id="canvas-scroll">
+        <div id="editor-page">
+            <div id="editor" spellcheck="false"></div>
+        </div>
+    </div>
+    <script src="../js/setup-editor.js"></script>
+    <script src="../js/editor-context-menu.js"></script>
 </body>
 </html>

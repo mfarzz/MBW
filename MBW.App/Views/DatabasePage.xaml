@@ -4,12 +4,71 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
-    <StackPanel Padding="32" Spacing="12">
-        <TextBlock Text="Database" FontSize="28" FontWeight="SemiBold" />
-        <TextBlock Text="Import and preview recipient data from an Excel file." Opacity="0.7" />
-        <Button Content="Import Excel file" HorizontalAlignment="Left" />
-        <Border BorderBrush="{ThemeResource CardStrokeColorDefault}" BorderThickness="1" Padding="20" Margin="0,16,0,0">
-            <TextBlock Text="No database loaded yet." Opacity="0.7" />
+
+    <Grid Padding="32">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Spacing="6">
+            <TextBlock Text="Database" FontSize="28" FontWeight="SemiBold" />
+            <TextBlock Text="Import and preview recipient data from an Excel file." Opacity="0.7" />
+        </StackPanel>
+
+        <StackPanel Grid.Row="1" Margin="0,16,0,12" Spacing="10">
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <Button Command="{Binding ImportExcelCommand}"
+                        IsEnabled="{Binding CanImport}"
+                        HorizontalAlignment="Left">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE8E5;" FontSize="14" />
+                        <TextBlock Text="Import Excel file" />
+                    </StackPanel>
+                </Button>
+                <ProgressRing IsActive="{Binding IsBusy}"
+                              Width="20"
+                              Height="20"
+                              Visibility="{Binding BusyVisibility}" />
+            </StackPanel>
+
+            <TextBlock Text="{Binding StatusMessage}"
+                       FontSize="12"
+                       Foreground="{ThemeResource TextFillColorSecondary}" />
+
+            <StackPanel Orientation="Horizontal"
+                        Spacing="16"
+                        Visibility="{Binding PreviewVisibility}">
+                <TextBlock Text="{Binding FileSummary}"
+                           FontSize="12"
+                           Foreground="{ThemeResource TextFillColorSecondary}" />
+                <TextBlock Text="{Binding PreviewCaption}"
+                           FontSize="12"
+                           Foreground="{ThemeResource TextFillColorSecondary}" />
+            </StackPanel>
+        </StackPanel>
+
+        <Border Grid.Row="2"
+                BorderBrush="{ThemeResource CardStrokeColorDefault}"
+                BorderThickness="1"
+                Background="{ThemeResource CardBackgroundFillColorDefault}"
+                Visibility="{Binding EmptyVisibility}">
+            <TextBlock Text="No database loaded yet."
+                       Opacity="0.7"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center" />
         </Border>
-    </StackPanel>
+
+        <Border Grid.Row="2"
+                BorderBrush="{ThemeResource CardStrokeColorDefault}"
+                BorderThickness="1"
+                Background="{ThemeResource CardBackgroundFillColorDefault}"
+                Visibility="{Binding PreviewVisibility}">
+            <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                          VerticalScrollBarVisibility="Auto">
+                <StackPanel x:Name="PreviewTableHost" Spacing="0" MinWidth="400" />
+            </ScrollViewer>
+        </Border>
+    </Grid>
 </Page>

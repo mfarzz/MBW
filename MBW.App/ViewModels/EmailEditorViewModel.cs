@@ -40,6 +40,10 @@ namespace MBW.App.ViewModels
 
         public event EventHandler<PreviewEventArgs>? PreviewRequested;
 
+        public event EventHandler<string>? EditorContentLoaded;
+
+        public Func<Task>? PullEditorContentAsync { get; set; }
+
         public class PreviewEventArgs : EventArgs
         {
             public string FromEmail { get; set; } = "seminar@fti.edu";
@@ -97,11 +101,20 @@ namespace MBW.App.ViewModels
                 _currentWorkspace = await _workspaceService.OpenAsync(workspacePath);
                 Subject = _currentWorkspace.Template?.Subject ?? string.Empty;
                 HtmlBody = _currentWorkspace.Template?.HtmlBody ?? string.Empty;
+                EditorContentLoaded?.Invoke(this, HtmlBody);
 
-                if (!string.IsNullOrEmpty(_currentWorkspace.DataFilePath)
-                    && System.IO.File.Exists(_currentWorkspace.DataFilePath))
+                if (_currentWorkspace.DataFilePath is not null)
                 {
-                    await LoadExcelHeadersAsync(_currentWorkspace.DataFilePath);
+                    var dataPath = _workspaceCoordinator.GetResolvedDataFilePath();
+                    if (!string.IsNullOrEmpty(dataPath))
+                    {
+                        await LoadExcelHeadersAsync(dataPath);
+                    }
+                    else
+                    {
+                        AvailableVariables.Clear();
+                        NoVariablesVisibility = Microsoft.UI.Xaml.Visibility.Visible;
+                    }
                 }
                 else
                 {
@@ -109,7 +122,7 @@ namespace MBW.App.ViewModels
                     NoVariablesVisibility = Microsoft.UI.Xaml.Visibility.Visible;
                 }
 
-                StatusMessage = "Workspace loaded successfully";
+                StatusMessage = "Ready";
             }
             catch (Exception ex)
             {
@@ -155,6 +168,8 @@ namespace MBW.App.ViewModels
                     return;
                 }
 
+                await SyncEditorContentAsync();
+
                 IsLoading = true;
                 StatusMessage = "Saving template...";
 
@@ -178,16 +193,27 @@ namespace MBW.App.ViewModels
         {
             try
             {
-                if (_currentWorkspace?.Template == null || string.IsNullOrEmpty(_currentWorkspace.DataFilePath))
+                await SyncEditorContentAsync();
+
+                if (_currentWorkspace == null)
                 {
-                    StatusMessage = "Template or data file not found";
+                    StatusMessage = "Workspace or data file not found";
                     return;
                 }
+
+                var dataPath = _workspaceCoordinator.GetResolvedDataFilePath();
+                if (string.IsNullOrEmpty(dataPath))
+                {
+                    StatusMessage = "Workspace or data file not found";
+                    return;
+                }
+
+                _currentWorkspace.Template = new EmailTemplate(Subject, HtmlBody);
 
                 IsLoading = true;
                 StatusMessage = "Loading preview...";
 
-                var preview = await _excelImporter.PreviewAsync(_currentWorkspace.DataFilePath, 1);
+                var preview = await _excelImporter.PreviewAsync(dataPath, 1);
 
                 if (preview.Count == 0)
                 {
@@ -233,6 +259,20 @@ namespace MBW.App.ViewModels
             StatusMessage = $"Variable {{{variableName}}} ready to insert";
         }
 
+        public async Task<EmailTemplate> GetCurrentTemplateAsync()
+        {
+            await SyncEditorContentAsync();
+            return new EmailTemplate(Subject, HtmlBody);
+        }
+
         public EmailTemplate GetCurrentTemplate() => new(Subject, HtmlBody);
+
+        private async Task SyncEditorContentAsync()
+        {
+            if (PullEditorContentAsync is not null)
+            {
+                await PullEditorContentAsync();
+            }
+        }
     }
 }

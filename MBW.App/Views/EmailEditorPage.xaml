@@ -3,196 +3,685 @@
     x:Class="MBW.App.Views.EmailEditorPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:MBW.App.Views"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
 
-    <Grid RowDefinitions="Auto,*,Auto">
-        <!-- Header with Title and Action Buttons -->
-        <Grid Grid.Row="0" Padding="20,16" ColumnDefinitions="*,Auto,Auto" BorderBrush="{ThemeResource DividerStrokeColorDefault}" BorderThickness="0,0,0,1">
-            <StackPanel Orientation="Vertical" VerticalAlignment="Center">
-                <TextBlock Text="Email" FontSize="24" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorPrimary}" />
-                <TextBlock Text="Compose the message sent to every recipient. Use variables for personalization." FontSize="13" Foreground="{ThemeResource TextFillColorSecondary}" Margin="0,4,0,0" />
-            </StackPanel>
+    <Page.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="ms-appx:///Assets/RibbonIcons.xaml" />
+            </ResourceDictionary.MergedDictionaries>
 
-            <Button Grid.Column="1" Content="Preview" Style="{StaticResource DefaultButtonStyle}" Margin="0,0,8,0" 
-                    Command="{Binding PreviewCommand}" />
-            <Button Grid.Column="2" Content="Continue to Sending" Style="{StaticResource AccentButtonStyle}" 
-                    Command="{Binding ContinueCommand}" />
+            <SolidColorBrush x:Key="RibbonHoverBrush" Color="#FFE8E8E8" />
+            <SolidColorBrush x:Key="RibbonPressedBrush" Color="#FFD0D0D0" />
+            <SolidColorBrush x:Key="RibbonActiveBrush" Color="#FFCCE4F7" />
+            <SolidColorBrush x:Key="RibbonActiveHoverBrush" Color="#FFB8D9F5" />
+            <SolidColorBrush x:Key="RibbonActivePressedBrush" Color="#FF9ECBF0" />
+            <SolidColorBrush x:Key="RibbonAccentHoverBrush" Color="#FFD4E7F8" />
+            <SolidColorBrush x:Key="RibbonAccentPressedBrush" Color="#FFB8D9F5" />
+
+            <Style x:Key="RibbonEditableTextBoxStyle" TargetType="TextBox">
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="Margin" Value="0" />
+                <Setter Property="FontSize" Value="12" />
+                <Setter Property="VerticalAlignment" Value="Stretch" />
+                <Setter Property="VerticalContentAlignment" Value="Center" />
+            </Style>
+
+            <Style x:Key="RibbonToggleButtonStyle" TargetType="ToggleButton">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Width" Value="32" />
+                <Setter Property="Height" Value="32" />
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="CornerRadius" Value="3" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ToggleButton">
+                            <Grid x:Name="RootGrid"
+                                  Background="Transparent"
+                                  CornerRadius="{TemplateBinding CornerRadius}">
+                                <VisualStateManager.VisualStateGroups>
+                                    <VisualStateGroup x:Name="CommonStates">
+                                        <VisualState x:Name="Normal">
+                                            <Storyboard>
+                                                <ObjectAnimationUsingKeyFrames Storyboard.TargetName="RootGrid" Storyboard.TargetProperty="Background">
+                                                    <DiscreteObjectKeyFrame KeyTime="0" Value="Transparent" />
+                                                </ObjectAnimationUsingKeyFrames>
+                                            </Storyboard>
+                                        </VisualState>
+                                        <VisualState x:Name="PointerOver">
+                                            <Storyboard>
+                                                <ObjectAnimationUsingKeyFrames Storyboard.TargetName="RootGrid" Storyboard.TargetProperty="Background">
+                                                    <DiscreteObjectKeyFrame KeyTime="0" Value="{StaticResource RibbonHoverBrush}" />
+                                                </ObjectAnimationUsingKeyFrames>
+                                            </Storyboard>
+                                        </VisualState>
+                                        <VisualState x:Name="Pressed">
+                                            <Storyboard>
+                                                <ObjectAnimationUsingKeyFrames Storyboard.TargetName="RootGrid" Storyboard.TargetProperty="Background">
+                                                    <DiscreteObjectKeyFrame KeyTime="0" Value="{StaticResource RibbonPressedBrush}" />
+                                                </ObjectAnimationUsingKeyFrames>
+                                            </Storyboard>
+                                        </VisualState>
+                                        <VisualState x:Name="Disabled">
+                                            <Storyboard>
+                                                <ObjectAnimationUsingKeyFrames Storyboard.TargetName="RootGrid" Storyboard.TargetProperty="Background">
+                                                    <DiscreteObjectKeyFrame KeyTime="0" Value="Transparent" />
+                                                </ObjectAnimationUsingKeyFrames>
+                                                <DoubleAnimation Storyboard.TargetName="ContentPresenter" Storyboard.TargetProperty="Opacity" To="0.4" Duration="0" />
+                                            </Storyboard>
+                                        </VisualState>
+                                        <VisualState x:Name="Checked">
+                                            <Storyboard>
+                                                <ObjectAnimationUsingKeyFrames Storyboard.TargetName="RootGrid" Storyboard.TargetProperty="Background">
+                                                    <DiscreteObjectKeyFrame KeyTime="0" Value="{StaticResource RibbonActiveBrush}" />
+                                                </ObjectAnimationUsingKeyFrames>
+                                            </Storyboard>
+                                        </VisualState>
+                                        <VisualState x:Name="CheckedPointerOver">
+                                            <Storyboard>
+                                                <ObjectAnimationUsingKeyFrames Storyboard.TargetName="RootGrid" Storyboard.TargetProperty="Background">
+                                                    <DiscreteObjectKeyFrame KeyTime="0" Value="{StaticResource RibbonActiveHoverBrush}" />
+                                                </ObjectAnimationUsingKeyFrames>
+                                            </Storyboard>
+                                        </VisualState>
+                                        <VisualState x:Name="CheckedPressed">
+                                            <Storyboard>
+                                                <ObjectAnimationUsingKeyFrames Storyboard.TargetName="RootGrid" Storyboard.TargetProperty="Background">
+                                                    <DiscreteObjectKeyFrame KeyTime="0" Value="{StaticResource RibbonActivePressedBrush}" />
+                                                </ObjectAnimationUsingKeyFrames>
+                                            </Storyboard>
+                                        </VisualState>
+                                        <VisualState x:Name="CheckedDisabled">
+                                            <Storyboard>
+                                                <ObjectAnimationUsingKeyFrames Storyboard.TargetName="RootGrid" Storyboard.TargetProperty="Background">
+                                                    <DiscreteObjectKeyFrame KeyTime="0" Value="{StaticResource RibbonActiveBrush}" />
+                                                </ObjectAnimationUsingKeyFrames>
+                                                <DoubleAnimation Storyboard.TargetName="ContentPresenter" Storyboard.TargetProperty="Opacity" To="0.4" Duration="0" />
+                                            </Storyboard>
+                                        </VisualState>
+                                        <VisualState x:Name="Indeterminate">
+                                            <Storyboard>
+                                                <ObjectAnimationUsingKeyFrames Storyboard.TargetName="RootGrid" Storyboard.TargetProperty="Background">
+                                                    <DiscreteObjectKeyFrame KeyTime="0" Value="Transparent" />
+                                                </ObjectAnimationUsingKeyFrames>
+                                            </Storyboard>
+                                        </VisualState>
+                                        <VisualState x:Name="IndeterminatePointerOver">
+                                            <Storyboard>
+                                                <ObjectAnimationUsingKeyFrames Storyboard.TargetName="RootGrid" Storyboard.TargetProperty="Background">
+                                                    <DiscreteObjectKeyFrame KeyTime="0" Value="{StaticResource RibbonHoverBrush}" />
+                                                </ObjectAnimationUsingKeyFrames>
+                                            </Storyboard>
+                                        </VisualState>
+                                        <VisualState x:Name="IndeterminatePressed">
+                                            <Storyboard>
+                                                <ObjectAnimationUsingKeyFrames Storyboard.TargetName="RootGrid" Storyboard.TargetProperty="Background">
+                                                    <DiscreteObjectKeyFrame KeyTime="0" Value="{StaticResource RibbonPressedBrush}" />
+                                                </ObjectAnimationUsingKeyFrames>
+                                            </Storyboard>
+                                        </VisualState>
+                                        <VisualState x:Name="IndeterminateDisabled">
+                                            <Storyboard>
+                                                <ObjectAnimationUsingKeyFrames Storyboard.TargetName="RootGrid" Storyboard.TargetProperty="Background">
+                                                    <DiscreteObjectKeyFrame KeyTime="0" Value="Transparent" />
+                                                </ObjectAnimationUsingKeyFrames>
+                                                <DoubleAnimation Storyboard.TargetName="ContentPresenter" Storyboard.TargetProperty="Opacity" To="0.4" Duration="0" />
+                                            </Storyboard>
+                                        </VisualState>
+                                    </VisualStateGroup>
+                                </VisualStateManager.VisualStateGroups>
+                                <ContentPresenter x:Name="ContentPresenter"
+                                                  HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"
+                                                  Content="{TemplateBinding Content}"
+                                                  ContentTemplate="{TemplateBinding ContentTemplate}" />
+                            </Grid>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style x:Key="RibbonIconButtonStyle" TargetType="Button">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Width" Value="32" />
+                <Setter Property="Height" Value="32" />
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="CornerRadius" Value="3" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Grid x:Name="RootGrid"
+                                  Background="{TemplateBinding Background}"
+                                  CornerRadius="{TemplateBinding CornerRadius}"
+                                  BorderBrush="{TemplateBinding BorderBrush}"
+                                  BorderThickness="{TemplateBinding BorderThickness}">
+                                <VisualStateManager.VisualStateGroups>
+                                    <VisualStateGroup x:Name="CommonStates">
+                                        <VisualState x:Name="Normal" />
+                                        <VisualState x:Name="PointerOver">
+                                            <Storyboard>
+                                                <ObjectAnimationUsingKeyFrames Storyboard.TargetName="RootGrid" Storyboard.TargetProperty="Background">
+                                                    <DiscreteObjectKeyFrame KeyTime="0" Value="{StaticResource RibbonHoverBrush}" />
+                                                </ObjectAnimationUsingKeyFrames>
+                                            </Storyboard>
+                                        </VisualState>
+                                        <VisualState x:Name="Pressed">
+                                            <Storyboard>
+                                                <ObjectAnimationUsingKeyFrames Storyboard.TargetName="RootGrid" Storyboard.TargetProperty="Background">
+                                                    <DiscreteObjectKeyFrame KeyTime="0" Value="{StaticResource RibbonPressedBrush}" />
+                                                </ObjectAnimationUsingKeyFrames>
+                                            </Storyboard>
+                                        </VisualState>
+                                        <VisualState x:Name="Disabled">
+                                            <Storyboard>
+                                                <DoubleAnimation Storyboard.TargetName="ContentPresenter" Storyboard.TargetProperty="Opacity" To="0.4" Duration="0" />
+                                            </Storyboard>
+                                        </VisualState>
+                                    </VisualStateGroup>
+                                </VisualStateManager.VisualStateGroups>
+                                <ContentPresenter x:Name="ContentPresenter"
+                                                  HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"
+                                                  Content="{TemplateBinding Content}"
+                                                  ContentTemplate="{TemplateBinding ContentTemplate}" />
+                            </Grid>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style x:Key="RibbonLargeButtonStyle" TargetType="Button">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="MinWidth" Value="52" />
+                <Setter Property="Height" Value="56" />
+                <Setter Property="Padding" Value="6,4" />
+                <Setter Property="CornerRadius" Value="4" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Grid x:Name="RootGrid"
+                                  Background="{TemplateBinding Background}"
+                                  CornerRadius="{TemplateBinding CornerRadius}"
+                                  MinWidth="{TemplateBinding MinWidth}"
+                                  Height="{TemplateBinding Height}"
+                                  Padding="{TemplateBinding Padding}">
+                                <VisualStateManager.VisualStateGroups>
+                                    <VisualStateGroup x:Name="CommonStates">
+                                        <VisualState x:Name="Normal" />
+                                        <VisualState x:Name="PointerOver">
+                                            <Storyboard>
+                                                <ObjectAnimationUsingKeyFrames Storyboard.TargetName="RootGrid" Storyboard.TargetProperty="Background">
+                                                    <DiscreteObjectKeyFrame KeyTime="0" Value="{StaticResource RibbonHoverBrush}" />
+                                                </ObjectAnimationUsingKeyFrames>
+                                            </Storyboard>
+                                        </VisualState>
+                                        <VisualState x:Name="Pressed">
+                                            <Storyboard>
+                                                <ObjectAnimationUsingKeyFrames Storyboard.TargetName="RootGrid" Storyboard.TargetProperty="Background">
+                                                    <DiscreteObjectKeyFrame KeyTime="0" Value="{StaticResource RibbonPressedBrush}" />
+                                                </ObjectAnimationUsingKeyFrames>
+                                            </Storyboard>
+                                        </VisualState>
+                                        <VisualState x:Name="Disabled">
+                                            <Storyboard>
+                                                <DoubleAnimation Storyboard.TargetName="ContentPresenter" Storyboard.TargetProperty="Opacity" To="0.4" Duration="0" />
+                                            </Storyboard>
+                                        </VisualState>
+                                    </VisualStateGroup>
+                                </VisualStateManager.VisualStateGroups>
+                                <ContentPresenter x:Name="ContentPresenter"
+                                                  HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"
+                                                  Content="{TemplateBinding Content}"
+                                                  ContentTemplate="{TemplateBinding ContentTemplate}" />
         </Grid>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
 
-        <!-- Main Content Area -->
-        <Grid Grid.Row="1" Padding="20" ColumnDefinitions="*,280" RowDefinitions="Auto,Auto,*">
-            <!-- Left Column: Editor -->
-            <Grid Grid.Column="0" Grid.Row="0" Grid.RowSpan="3" RowDefinitions="Auto,Auto,*">
-                <!-- Subject Field -->
-                <Grid Grid.Row="0" RowDefinitions="Auto,Auto">
-                    <TextBlock Text="Subject" FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorPrimary}" />
-                    <TextBox Grid.Row="1" Text="{Binding Subject, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                             Margin="0,8,0,0" MinHeight="36" Padding="12,8" 
-                             PlaceholderText="Enter email subject..." />
+            <Style x:Key="RibbonAccentLargeButtonStyle" TargetType="Button">
+                <Setter Property="Background" Value="{ThemeResource AccentFillColorSecondaryBrush}" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="MinWidth" Value="52" />
+                <Setter Property="Height" Value="56" />
+                <Setter Property="Padding" Value="6,4" />
+                <Setter Property="CornerRadius" Value="4" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Grid x:Name="RootGrid"
+                                  Background="{TemplateBinding Background}"
+                                  CornerRadius="{TemplateBinding CornerRadius}"
+                                  MinWidth="{TemplateBinding MinWidth}"
+                                  Height="{TemplateBinding Height}"
+                                  Padding="{TemplateBinding Padding}">
+                                <VisualStateManager.VisualStateGroups>
+                                    <VisualStateGroup x:Name="CommonStates">
+                                        <VisualState x:Name="Normal" />
+                                        <VisualState x:Name="PointerOver">
+                                            <Storyboard>
+                                                <ObjectAnimationUsingKeyFrames Storyboard.TargetName="RootGrid" Storyboard.TargetProperty="Background">
+                                                    <DiscreteObjectKeyFrame KeyTime="0" Value="{StaticResource RibbonAccentHoverBrush}" />
+                                                </ObjectAnimationUsingKeyFrames>
+                                            </Storyboard>
+                                        </VisualState>
+                                        <VisualState x:Name="Pressed">
+                                            <Storyboard>
+                                                <ObjectAnimationUsingKeyFrames Storyboard.TargetName="RootGrid" Storyboard.TargetProperty="Background">
+                                                    <DiscreteObjectKeyFrame KeyTime="0" Value="{StaticResource RibbonAccentPressedBrush}" />
+                                                </ObjectAnimationUsingKeyFrames>
+                                            </Storyboard>
+                                        </VisualState>
+                                        <VisualState x:Name="Disabled">
+                                            <Storyboard>
+                                                <DoubleAnimation Storyboard.TargetName="ContentPresenter" Storyboard.TargetProperty="Opacity" To="0.4" Duration="0" />
+                                            </Storyboard>
+                                        </VisualState>
+                                    </VisualStateGroup>
+                                </VisualStateManager.VisualStateGroups>
+                                <ContentPresenter x:Name="ContentPresenter"
+                                                  HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"
+                                                  Content="{TemplateBinding Content}"
+                                                  ContentTemplate="{TemplateBinding ContentTemplate}" />
                 </Grid>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
 
-                <!-- Formatting Toolbar -->
-                <Grid Grid.Row="1" Margin="0,16,0,0" Padding="12" Background="{ThemeResource CardBackgroundFillColorDefault}" 
-                      CornerRadius="4" BorderBrush="{ThemeResource CardStrokeColorDefault}" BorderThickness="1">
-                    <StackPanel Orientation="Horizontal" Spacing="4">
-                        <!-- Undo/Redo -->
-                        <Button ToolTipService.ToolTip="Undo" Background="Transparent" Click="OnUndoClick">
-                            <SymbolIcon Symbol="Undo" />
-                        </Button>
-                        <Button ToolTipService.ToolTip="Redo" Background="Transparent" Click="OnRedoClick">
-                            <SymbolIcon Symbol="Redo" />
-                        </Button>
+            <Style x:Key="RibbonGroupLabelStyle" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="10" />
+                <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondary}" />
+                <Setter Property="HorizontalAlignment" Value="Center" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+                <Setter Property="Margin" Value="0,2,0,0" />
+            </Style>
 
-                        <AppBarSeparator />
+            <x:Double x:Key="RibbonGroupHeight">96</x:Double>
+            <x:Double x:Key="RibbonGroupLabelHeight">16</x:Double>
 
-                        <!-- Text Formatting -->
-                        <Button ToolTipService.ToolTip="Bold" Background="Transparent" Click="OnBoldClick" x:Name="BoldBtn">
-                            <FontIcon Glyph="&#xE19B;" />
-                        </Button>
-                        <Button ToolTipService.ToolTip="Italic" Background="Transparent" Click="OnItalicClick">
-                            <FontIcon Glyph="&#xE19C;" />
-                        </Button>
-                        <Button ToolTipService.ToolTip="Underline" Background="Transparent" Click="OnUnderlineClick">
-                            <FontIcon Glyph="&#xE19D;" />
-                        </Button>
+            <Style x:Key="RibbonComboStyle" TargetType="ComboBox">
+                <Setter Property="MinHeight" Value="32" />
+                <Setter Property="FontSize" Value="12" />
+                <Setter Property="Foreground" Value="{ThemeResource TextFillColorPrimary}" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+                <Setter Property="VerticalContentAlignment" Value="Center" />
+                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            </Style>
 
-                        <AppBarSeparator />
+            <Style x:Key="RibbonComboItemStyle" TargetType="ComboBoxItem">
+                <Setter Property="FontSize" Value="12" />
+                <Setter Property="Foreground" Value="{ThemeResource TextFillColorPrimary}" />
+                <Setter Property="Padding" Value="8,6" />
+            </Style>
 
-                        <!-- Font Size -->
-                        <ComboBox Width="60" SelectedIndex="2" SelectionChanged="OnFontSizeChanged">
+            <Style x:Key="RibbonFontSizeComboStyle" TargetType="ComboBox" BasedOn="{StaticResource RibbonComboStyle}">
+                <Setter Property="IsEditable" Value="True" />
+                <Setter Property="IsTextSearchEnabled" Value="True" />
+                <Setter Property="ItemContainerStyle" Value="{StaticResource RibbonComboItemStyle}" />
+                <Setter Property="TextBoxStyle" Value="{StaticResource RibbonEditableTextBoxStyle}" />
+            </Style>
+        </ResourceDictionary>
+    </Page.Resources>
+
+    <Grid RowDefinitions="Auto,*">
+        <!-- Single-row Word-like ribbon -->
+        <Border Grid.Row="0"
+                Background="{ThemeResource CardBackgroundFillColorDefault}"
+                BorderBrush="{ThemeResource DividerStrokeColorDefault}"
+                BorderThickness="0,0,0,1"
+                Padding="4,4,4,4">
+            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                <StackPanel Orientation="Horizontal" Spacing="0" Height="{StaticResource RibbonGroupHeight}">
+
+                    <!-- Clipboard -->
+                    <Grid Margin="6,0,4,0" RowDefinitions="Auto,*,Auto" Height="{StaticResource RibbonGroupHeight}">
+                        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="2" VerticalAlignment="Top">
+                            <Button Style="{StaticResource RibbonLargeButtonStyle}" ToolTipService.ToolTip="Paste (Ctrl+V)" Click="OnPasteClick">
+                                <StackPanel Spacing="2" HorizontalAlignment="Center">
+                                    <FontIcon Glyph="&#xE77F;" FontSize="20" HorizontalAlignment="Center" />
+                                    <TextBlock Text="Paste" FontSize="10" HorizontalAlignment="Center" />
+                                </StackPanel>
+                        </Button>
+                            <StackPanel Spacing="1" VerticalAlignment="Center">
+                                <Button Style="{StaticResource RibbonIconButtonStyle}" ToolTipService.ToolTip="Undo (Ctrl+Z)" Click="OnUndoClick">
+                                    <FontIcon Glyph="&#xE7A7;" FontSize="16" />
+                        </Button>
+                                <Button Style="{StaticResource RibbonIconButtonStyle}" ToolTipService.ToolTip="Redo (Ctrl+Y)" Click="OnRedoClick">
+                                    <FontIcon Glyph="&#xE7A6;" FontSize="16" />
+                        </Button>
+                            </StackPanel>
+                        </StackPanel>
+                        <TextBlock Grid.Row="2" Text="Clipboard" Style="{StaticResource RibbonGroupLabelStyle}" Height="{StaticResource RibbonGroupLabelHeight}" />
+                    </Grid>
+
+                    <Rectangle Width="1" Fill="{ThemeResource DividerStrokeColorDefault}" Margin="4,4,4,4" VerticalAlignment="Stretch" />
+
+                    <!-- Font -->
+                    <Grid Margin="6,0,4,0" RowDefinitions="Auto,*,Auto" Height="{StaticResource RibbonGroupHeight}">
+                        <Grid Grid.Row="0" RowDefinitions="Auto,Auto" RowSpacing="4" VerticalAlignment="Top">
+                            <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="4" MinHeight="34" VerticalAlignment="Center">
+                                <ComboBox x:Name="FontFamilyCombo"
+                                          Style="{StaticResource RibbonComboStyle}"
+                                          ItemContainerStyle="{StaticResource RibbonComboItemStyle}"
+                                          Width="150"
+                                          SelectedIndex="0"
+                                          SelectionChanged="OnFontFamilyChanged">
+                                    <ComboBoxItem Content="Segoe UI" />
+                                    <ComboBoxItem Content="Arial" />
+                                    <ComboBoxItem Content="Calibri" />
+                                    <ComboBoxItem Content="Times New Roman" />
+                                    <ComboBoxItem Content="Verdana" />
+                                    <ComboBoxItem Content="Georgia" />
+                                    <ComboBoxItem Content="Courier New" />
+                                </ComboBox>
+                                <ComboBox x:Name="FontSizeCombo"
+                                          Style="{StaticResource RibbonFontSizeComboStyle}"
+                                          Width="84"
+                                          Text="12"
+                                          SelectionChanged="OnFontSizeChanged"
+                                          LostFocus="OnFontSizeLostFocus"
+                                          KeyDown="OnFontSizeKeyDown">
                             <ComboBoxItem Content="10" />
+                                    <ComboBoxItem Content="11" />
                             <ComboBoxItem Content="12" />
                             <ComboBoxItem Content="14" />
                             <ComboBoxItem Content="16" />
                             <ComboBoxItem Content="18" />
                             <ComboBoxItem Content="20" />
+                                    <ComboBoxItem Content="24" />
+                                    <ComboBoxItem Content="28" />
                         </ComboBox>
-
-                        <AppBarSeparator />
-
-                        <!-- Alignment -->
-                        <Button ToolTipService.ToolTip="Align Left" Background="Transparent" Click="OnAlignLeftClick">
-                            <FontIcon Glyph="&#xE8E1;" />
-                        </Button>
-                        <Button ToolTipService.ToolTip="Align Center" Background="Transparent" Click="OnAlignCenterClick">
-                            <FontIcon Glyph="&#xE8E2;" />
-                        </Button>
-                        <Button ToolTipService.ToolTip="Align Right" Background="Transparent" Click="OnAlignRightClick">
-                            <FontIcon Glyph="&#xE8E3;" />
-                        </Button>
-
-                        <AppBarSeparator />
-
-                        <!-- Lists -->
-                        <Button ToolTipService.ToolTip="Bullet List" Background="Transparent" Click="OnBulletListClick">
-                            <FontIcon Glyph="&#xE71C;" />
-                        </Button>
-                        <Button ToolTipService.ToolTip="Numbered List" Background="Transparent" Click="OnNumberedListClick">
-                            <FontIcon Glyph="&#xE71D;" />
-                        </Button>
-
-                        <AppBarSeparator />
-
-                        <!-- Link and Insert Variable -->
-                        <Button ToolTipService.ToolTip="Insert Link" Background="Transparent" Click="OnLinkClick">
-                            <FontIcon Glyph="&#xE71B;" />
-                        </Button>
-
-                        <AppBarSeparator />
-
-                        <Button ToolTipService.ToolTip="Insert Variable" Background="Transparent">
-                            <StackPanel Orientation="Horizontal" Spacing="4">
-                                <TextBlock Text="{}" Foreground="{ThemeResource TextFillColorPrimary}" />
-                                <TextBlock Text="Insert Variable" Foreground="{ThemeResource TextFillColorPrimary}" />
                             </StackPanel>
+                            <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="1" VerticalAlignment="Top">
+                                <ToggleButton x:Name="BoldToggle" Style="{StaticResource RibbonToggleButtonStyle}" ToolTipService.ToolTip="Bold (Ctrl+B)" Click="OnBoldClick">
+                                    <FontIcon Glyph="&#xE8DD;" FontSize="16" />
+                                </ToggleButton>
+                                <ToggleButton x:Name="ItalicToggle" Style="{StaticResource RibbonToggleButtonStyle}" ToolTipService.ToolTip="Italic (Ctrl+I)" Click="OnItalicClick">
+                                    <FontIcon Glyph="&#xE8DB;" FontSize="16" />
+                                </ToggleButton>
+                                <ToggleButton x:Name="UnderlineToggle" Style="{StaticResource RibbonToggleButtonStyle}" ToolTipService.ToolTip="Underline (Ctrl+U)" Click="OnUnderlineClick">
+                                    <FontIcon Glyph="&#xE8DC;" FontSize="16" />
+                                </ToggleButton>
+                                <ToggleButton x:Name="StrikethroughToggle" Style="{StaticResource RibbonToggleButtonStyle}" ToolTipService.ToolTip="Strikethrough" Click="OnStrikethroughClick">
+                                    <FontIcon Glyph="&#xEDE0;" FontSize="16" />
+                                </ToggleButton>
+                                <ToggleButton x:Name="SuperscriptToggle" Style="{StaticResource RibbonToggleButtonStyle}" ToolTipService.ToolTip="Superscript" Click="OnSuperscriptClick">
+                                    <Viewbox Width="16" Height="16">
+                                        <Grid Width="14" Height="14">
+                                            <TextBlock Text="x" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Left" />
+                                            <TextBlock Text="2" FontSize="6" FontWeight="SemiBold" VerticalAlignment="Top" HorizontalAlignment="Right" Margin="0,-1,0,0" />
+                                        </Grid>
+                                    </Viewbox>
+                                </ToggleButton>
+                                <ToggleButton x:Name="SubscriptToggle" Style="{StaticResource RibbonToggleButtonStyle}" ToolTipService.ToolTip="Subscript" Click="OnSubscriptClick">
+                                    <Viewbox Width="16" Height="16">
+                                        <Grid Width="14" Height="14">
+                                            <TextBlock Text="x" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Left" />
+                                            <TextBlock Text="2" FontSize="6" FontWeight="SemiBold" VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="0,0,0,-1" />
+                                        </Grid>
+                                    </Viewbox>
+                                </ToggleButton>
+                                <Button Style="{StaticResource RibbonIconButtonStyle}" ToolTipService.ToolTip="Font Color">
+                                    <Viewbox Width="16" Height="16">
+                                        <StackPanel Width="14" Spacing="1">
+                                            <TextBlock Text="A" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center" LineHeight="10" />
+                                            <Rectangle x:Name="FontColorBar" Height="3" Width="14" Fill="#FF000000" />
+                                        </StackPanel>
+                                    </Viewbox>
+                                    <Button.Flyout>
+                                        <Flyout Placement="Bottom">
+                                            <StackPanel Spacing="8" MinWidth="220">
+                                                <TextBlock Text="Font color" FontWeight="SemiBold" />
+                                                <ColorPicker x:Name="TextColorPicker" Color="#FF000000" ColorChanged="TextColorPicker_ColorChanged" IsColorChannelTextInputVisible="False" IsColorSpectrumVisible="True" IsColorPreviewVisible="True" />
+                                            </StackPanel>
+                                        </Flyout>
+                                    </Button.Flyout>
+                        </Button>
+                                <Button Style="{StaticResource RibbonIconButtonStyle}" ToolTipService.ToolTip="Text Highlight">
+                                    <PathIcon Style="{StaticResource RibbonPathIconStyle}" Data="{StaticResource RibbonPathTextHighlight}" />
+                                    <Button.Flyout>
+                                        <Flyout Placement="Bottom">
+                                            <StackPanel Spacing="8" MinWidth="220">
+                                                <TextBlock Text="Highlight color" FontWeight="SemiBold" />
+                                                <ColorPicker x:Name="HighlightColorPicker" Color="#FFFFFF00" ColorChanged="HighlightColorPicker_ColorChanged" IsColorChannelTextInputVisible="False" IsColorSpectrumVisible="True" IsColorPreviewVisible="True" />
+                                            </StackPanel>
+                                        </Flyout>
+                                    </Button.Flyout>
+                        </Button>
+                            </StackPanel>
+                        </Grid>
+                        <TextBlock Grid.Row="2" Text="Font" Style="{StaticResource RibbonGroupLabelStyle}" Height="{StaticResource RibbonGroupLabelHeight}" />
+                    </Grid>
+
+                    <Rectangle Width="1" Fill="{ThemeResource DividerStrokeColorDefault}" Margin="4,4,4,4" VerticalAlignment="Stretch" />
+
+                    <!-- Paragraph (alignment + lists) -->
+                    <Grid Margin="6,0,4,0" RowDefinitions="Auto,*,Auto" Height="{StaticResource RibbonGroupHeight}">
+                        <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto" ColumnSpacing="6" VerticalAlignment="Top">
+                            <StackPanel Grid.Column="0" Spacing="2">
+                                <StackPanel Orientation="Horizontal" Spacing="1">
+                                    <ToggleButton x:Name="AlignLeftToggle" Style="{StaticResource RibbonToggleButtonStyle}" ToolTipService.ToolTip="Align Left (Ctrl+L)" Click="OnAlignLeftClick">
+                                        <PathIcon Style="{StaticResource RibbonPathIconStyle}" Data="{StaticResource RibbonPathAlignLeft}" />
+                                    </ToggleButton>
+                                    <ToggleButton x:Name="AlignCenterToggle" Style="{StaticResource RibbonToggleButtonStyle}" ToolTipService.ToolTip="Center (Ctrl+E)" Click="OnAlignCenterClick">
+                                        <PathIcon Style="{StaticResource RibbonPathIconStyle}" Data="{StaticResource RibbonPathAlignCenter}" />
+                                    </ToggleButton>
+                                    <ToggleButton x:Name="AlignRightToggle" Style="{StaticResource RibbonToggleButtonStyle}" ToolTipService.ToolTip="Align Right (Ctrl+R)" Click="OnAlignRightClick">
+                                        <PathIcon Style="{StaticResource RibbonPathIconStyle}" Data="{StaticResource RibbonPathAlignRight}" />
+                                    </ToggleButton>
+                                    <ToggleButton x:Name="JustifyToggle" Style="{StaticResource RibbonToggleButtonStyle}" ToolTipService.ToolTip="Justify (Ctrl+J)" Click="OnJustifyClick">
+                                        <PathIcon Style="{StaticResource RibbonPathIconStyle}" Data="{StaticResource RibbonPathAlignJustify}" />
+                                    </ToggleButton>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Spacing="1">
+                                    <ToggleButton x:Name="BulletToggle" Style="{StaticResource RibbonToggleButtonStyle}" ToolTipService.ToolTip="Bullets" Click="OnBulletListClick">
+                                        <FontIcon Glyph="&#xE8FD;" FontSize="16" />
+                                    </ToggleButton>
+                                    <ToggleButton x:Name="NumberedToggle" Style="{StaticResource RibbonToggleButtonStyle}" ToolTipService.ToolTip="Numbering" Click="OnNumberedListClick">
+                                        <Viewbox Width="16" Height="16">
+                                            <Canvas Width="16" Height="16">
+                                                <TextBlock Canvas.Left="0" Canvas.Top="0" Text="1." FontSize="5" FontFamily="Segoe UI" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorPrimary}" />
+                                                <Rectangle Canvas.Left="6" Canvas.Top="3" Width="9" Height="1" Fill="{ThemeResource TextFillColorPrimary}" />
+                                                <TextBlock Canvas.Left="0" Canvas.Top="5.5" Text="2." FontSize="5" FontFamily="Segoe UI" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorPrimary}" />
+                                                <Rectangle Canvas.Left="6" Canvas.Top="8.5" Width="9" Height="1" Fill="{ThemeResource TextFillColorPrimary}" />
+                                                <TextBlock Canvas.Left="0" Canvas.Top="11" Text="3." FontSize="5" FontFamily="Segoe UI" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorPrimary}" />
+                                                <Rectangle Canvas.Left="6" Canvas.Top="14" Width="9" Height="1" Fill="{ThemeResource TextFillColorPrimary}" />
+                                            </Canvas>
+                                        </Viewbox>
+                                    </ToggleButton>
+                                    <Button Style="{StaticResource RibbonIconButtonStyle}" ToolTipService.ToolTip="Decrease Indent" Click="OnOutdentClick">
+                                        <PathIcon Style="{StaticResource RibbonPathIconStyle}" Data="{StaticResource RibbonPathDecreaseIndent}" />
+                        </Button>
+                                    <Button Style="{StaticResource RibbonIconButtonStyle}" ToolTipService.ToolTip="Increase Indent" Click="OnIndentClick">
+                                        <PathIcon Style="{StaticResource RibbonPathIconStyle}" Data="{StaticResource RibbonPathIncreaseIndent}" />
+                        </Button>
+                                </StackPanel>
+                            </StackPanel>
+                            <ComboBox Grid.Column="1"
+                                      x:Name="LineSpacingCombo"
+                                      Style="{StaticResource RibbonComboStyle}"
+                                      ItemContainerStyle="{StaticResource RibbonComboItemStyle}"
+                                      Width="72"
+                                      SelectedIndex="1"
+                                      SelectionChanged="OnLineSpacingChanged"
+                                      ToolTipService.ToolTip="Line spacing"
+                                      VerticalAlignment="Center">
+                                <ComboBoxItem Content="1.0" />
+                                <ComboBoxItem Content="1.15" />
+                                <ComboBoxItem Content="1.5" />
+                                <ComboBoxItem Content="2.0" />
+                            </ComboBox>
+                        </Grid>
+                        <TextBlock Grid.Row="2" Text="Paragraph" Style="{StaticResource RibbonGroupLabelStyle}" Height="{StaticResource RibbonGroupLabelHeight}" />
+                    </Grid>
+
+                    <Rectangle Width="1" Fill="{ThemeResource DividerStrokeColorDefault}" Margin="4,4,4,4" VerticalAlignment="Stretch" />
+
+                    <!-- Insert -->
+                    <Grid Margin="6,0,4,0" RowDefinitions="Auto,*,Auto" Height="{StaticResource RibbonGroupHeight}">
+                        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="1" VerticalAlignment="Center">
+                            <Button x:Name="LinkButton"
+                                    Style="{StaticResource RibbonIconButtonStyle}"
+                                    ToolTipService.ToolTip="Insert Link (Ctrl+K)"
+                                    Click="OnLinkButtonClick">
+                                <Grid Width="16" Height="16">
+                                    <FontIcon x:Name="LinkInsertIcon" Glyph="&#xE71B;" FontSize="16" />
+                                    <Viewbox x:Name="LinkRemoveIcon" Visibility="Collapsed" Width="16" Height="16">
+                                        <Grid Width="16" Height="16">
+                                            <FontIcon Glyph="&#xE71B;" FontSize="12" Opacity="0.9" />
+                                            <Border Width="11" Height="1.5" Background="{ThemeResource TextFillColorPrimary}" HorizontalAlignment="Center" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5">
+                                                <Border.RenderTransform>
+                                                    <RotateTransform Angle="-45" />
+                                                </Border.RenderTransform>
+                                            </Border>
+                                        </Grid>
+                                    </Viewbox>
+                                </Grid>
+                            </Button>
+                            <Button Style="{StaticResource RibbonIconButtonStyle}" ToolTipService.ToolTip="Insert Picture" Click="OnInsertImageClick">
+                                <FontIcon Glyph="&#xE8B9;" FontSize="16" />
+                            </Button>
+                            <Button Style="{StaticResource RibbonIconButtonStyle}" ToolTipService.ToolTip="Horizontal Line" Click="OnHorizontalRuleClick">
+                                <PathIcon Style="{StaticResource RibbonPathIconStyle}" Data="{StaticResource RibbonPathHorizontalRule}" />
+                            </Button>
+                            <Button Style="{StaticResource RibbonIconButtonStyle}" ToolTipService.ToolTip="Insert Variable">
+                                <TextBlock Text="&#123;&#125;" FontSize="12" FontWeight="SemiBold" />
                             <Button.Flyout>
                                 <MenuFlyout x:Name="VariableFlyout" Opened="VariableFlyout_Opened">
-                                    <MenuFlyout.Items>
                                         <MenuFlyoutItem Text="Select variable..." IsEnabled="False" />
                                         <MenuFlyoutSeparator />
-                                    </MenuFlyout.Items>
                                 </MenuFlyout>
                             </Button.Flyout>
                         </Button>
+                        </StackPanel>
+                        <TextBlock Grid.Row="2" Text="Insert" Style="{StaticResource RibbonGroupLabelStyle}" Height="{StaticResource RibbonGroupLabelHeight}" />
+                    </Grid>
 
-                        <AppBarSeparator />
+                    <Rectangle Width="1" Fill="{ThemeResource DividerStrokeColorDefault}" Margin="4,4,4,4" VerticalAlignment="Stretch" />
 
-                        <!-- Clear -->
-                        <Button ToolTipService.ToolTip="Clear" Background="Transparent" Click="OnClearClick">
-                            <FontIcon Glyph="&#xE74D;" />
+                    <!-- Table -->
+                    <Grid Margin="6,0,4,0" RowDefinitions="Auto,*,Auto" Height="{StaticResource RibbonGroupHeight}">
+                        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="1" VerticalAlignment="Center">
+                            <Button x:Name="InsertTableButton"
+                                    Style="{StaticResource RibbonIconButtonStyle}"
+                                    ToolTipService.ToolTip="Insert Table">
+                                <FontIcon Glyph="&#xE8A5;" FontSize="16" />
+                                <Button.Flyout>
+                                    <Flyout x:Name="InsertTableFlyout" Placement="Bottom">
+                                        <StackPanel Spacing="8" Padding="4">
+                                            <TextBlock x:Name="InsertTableSizeLabel"
+                                                       Text="Insert Table"
+                                                       FontSize="12"
+                                                       Foreground="{ThemeResource TextFillColorSecondary}" />
+                                            <Grid x:Name="TableGridPicker" />
+                                        </StackPanel>
+                                    </Flyout>
+                                </Button.Flyout>
+                            </Button>
+                        </StackPanel>
+                        <TextBlock Grid.Row="2" Text="Table" Style="{StaticResource RibbonGroupLabelStyle}" Height="{StaticResource RibbonGroupLabelHeight}" />
+                    </Grid>
+
+                    <Rectangle Width="1" Fill="{ThemeResource DividerStrokeColorDefault}" Margin="4,4,4,4" VerticalAlignment="Stretch" />
+
+                    <!-- Editing -->
+                    <Grid Margin="6,0,4,0" RowDefinitions="Auto,*,Auto" Height="{StaticResource RibbonGroupHeight}">
+                        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="1" VerticalAlignment="Center">
+                            <Button Style="{StaticResource RibbonIconButtonStyle}" ToolTipService.ToolTip="Clear Formatting" Click="OnClearFormattingClick">
+                                <FontIcon Glyph="&#xE8E6;" FontSize="16" />
+                            </Button>
+                            <Button Style="{StaticResource RibbonIconButtonStyle}" ToolTipService.ToolTip="Clear All" Click="OnClearClick">
+                                <FontIcon Glyph="&#xE74D;" FontSize="16" />
+                            </Button>
+                            <Button Style="{StaticResource RibbonIconButtonStyle}" ToolTipService.ToolTip="HTML Source" Click="OnToggleHtmlSourceClick">
+                                <FontIcon Glyph="&#xE943;" FontSize="16" />
+                            </Button>
+                        </StackPanel>
+                        <TextBlock Grid.Row="2" Text="Editing" Style="{StaticResource RibbonGroupLabelStyle}" Height="{StaticResource RibbonGroupLabelHeight}" />
+                    </Grid>
+
+                    <Rectangle Width="1" Fill="{ThemeResource DividerStrokeColorDefault}" Margin="4,4,4,4" VerticalAlignment="Stretch" />
+
+                    <!-- Send (Preview + Continue) -->
+                    <Grid Margin="6,0,8,0" RowDefinitions="Auto,*,Auto" Height="{StaticResource RibbonGroupHeight}">
+                        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="2" VerticalAlignment="Top">
+                            <Button Style="{StaticResource RibbonLargeButtonStyle}"
+                                    ToolTipService.ToolTip="Preview email with sample data"
+                                    Command="{Binding PreviewCommand}">
+                                <StackPanel Spacing="2" HorizontalAlignment="Center">
+                                    <FontIcon Glyph="&#xE8FF;" FontSize="20" HorizontalAlignment="Center" />
+                                    <TextBlock Text="Preview" FontSize="10" HorizontalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+                            <Button Style="{StaticResource RibbonAccentLargeButtonStyle}"
+                                    ToolTipService.ToolTip="Continue to Sending"
+                                    Command="{Binding ContinueCommand}">
+                                <StackPanel Spacing="2" HorizontalAlignment="Center">
+                                    <FontIcon Glyph="&#xE724;" FontSize="20" HorizontalAlignment="Center" Foreground="{ThemeResource AccentFillColorDefaultBrush}" />
+                                    <TextBlock Text="Send" FontSize="10" HorizontalAlignment="Center" Foreground="{ThemeResource AccentFillColorDefaultBrush}" FontWeight="SemiBold" />
+                                </StackPanel>
                         </Button>
                     </StackPanel>
+                        <TextBlock Grid.Row="2" Text="Send" Style="{StaticResource RibbonGroupLabelStyle}" Height="{StaticResource RibbonGroupLabelHeight}" />
                 </Grid>
 
-                <!-- HTML Editor Area (WebView2) -->
-                <Border Grid.Row="2" Margin="0,16,0,0" BorderBrush="{ThemeResource CardStrokeColorDefault}" 
-                        BorderThickness="1" CornerRadius="4" Background="{ThemeResource CardBackgroundFillColorDefault}">
-                    <Grid RowDefinitions="*,Auto">
-                        <!-- WebView2 will be added here from code-behind -->
-                        <WebView2 x:Name="HtmlEditor" Grid.Row="0" />
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
 
-                        <!-- Info Text -->
-                        <TextBlock Grid.Row="1" Padding="12" Text="Variables such as {Nama} are replaced per recipient using the loaded database." 
-                                   FontSize="12" Foreground="{ThemeResource TextFillColorTertiary}" 
-                                   TextWrapping="Wrap" />
+        <!-- Editor + variables -->
+        <Grid Grid.Row="1" ColumnDefinitions="*,280">
+            <Border Grid.Column="0"
+                    Background="#FFF3F3F3"
+                    BorderBrush="{ThemeResource DividerStrokeColorDefault}"
+                    BorderThickness="0,0,1,0">
+                <Grid>
+                    <WebView2 x:Name="HtmlEditor" DefaultBackgroundColor="#FFF3F3F3" />
+                    <TextBox x:Name="HtmlSourceBox"
+                             Visibility="Collapsed"
+                             AcceptsReturn="True"
+                             TextWrapping="Wrap"
+                             FontFamily="Consolas"
+                             FontSize="12"
+                             Padding="12"
+                             Background="White"
+                             BorderThickness="0" />
                     </Grid>
                 </Border>
-            </Grid>
 
-            <!-- Right Column: Available Variables Panel -->
-            <Grid Grid.Column="1" Grid.Row="0" Grid.RowSpan="3" Padding="12,0,0,0">
-                <StackPanel Orientation="Vertical" Spacing="12">
-                    <!-- Variables Header -->
-                    <TextBlock Text="Available Variables" FontSize="13" FontWeight="SemiBold" 
-                               Foreground="{ThemeResource TextFillColorPrimary}" />
-
-                    <!-- Variables List -->
-                    <ScrollViewer MaxHeight="400">
-                        <ListView ItemsSource="{Binding AvailableVariables}" 
-                                  SelectionMode="None"
-                                  Background="Transparent">
+            <Grid Grid.Column="1" Padding="16,12" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="Available Variables" FontSize="13" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorPrimary}" />
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <ListView ItemsSource="{Binding AvailableVariables}" SelectionMode="None" Background="Transparent">
                             <ListView.ItemTemplate>
                                 <DataTemplate x:DataType="x:String">
-                                    <Grid ColumnDefinitions="*,Auto" Padding="0,6" 
-                                          BorderBrush="{ThemeResource DividerStrokeColorDefault}" 
-                                          BorderThickness="0,0,0,1">
-                                        <TextBlock Grid.Column="0" Text="{Binding}" 
-                                                   Foreground="{ThemeResource TextFillColorPrimary}" 
-                                                   VerticalAlignment="Center" />
-                                        <Button Grid.Column="1" Content="Insert" 
-                                                Style="{StaticResource AccentButtonStyle}"
-                                                Click="OnInsertVariableFromListClick" 
-                                                Tag="{Binding}" 
-                                                Padding="8,4" FontSize="12" />
+                                    <Grid ColumnDefinitions="*,Auto" Padding="0,6" BorderBrush="{ThemeResource DividerStrokeColorDefault}" BorderThickness="0,0,0,1">
+                                        <TextBlock Grid.Column="0" Text="{Binding}" Foreground="{ThemeResource TextFillColorPrimary}" VerticalAlignment="Center" />
+                                        <Button Grid.Column="1" Content="Insert" Style="{StaticResource AccentButtonStyle}" Click="OnInsertVariableFromListClick" Tag="{Binding}" Padding="8,4" FontSize="12" />
                                     </Grid>
                                 </DataTemplate>
                             </ListView.ItemTemplate>
                         </ListView>
                     </ScrollViewer>
-
-                    <!-- No Variables Message -->
                     <TextBlock Text="No variables. Import Excel file first." 
                                Foreground="{ThemeResource TextFillColorSecondary}" 
-                               FontSize="12" FontStyle="Italic"
+                               FontSize="12"
+                               FontStyle="Italic"
                                Visibility="{Binding NoVariablesVisibility}" />
-
-                    <!-- Save Button -->
-                    <Button Content="Save Template" 
-                            Style="{StaticResource DefaultButtonStyle}"
-                            Command="{Binding SaveCommand}"
-                            Margin="0,12,0,0" />
                 </StackPanel>
             </Grid>
-        </Grid>
-
-        <!-- Status Bar -->
-        <Grid Grid.Row="2" Padding="20,12" Background="{ThemeResource CardBackgroundFillColorDefault}" 
-              BorderBrush="{ThemeResource DividerStrokeColorDefault}" BorderThickness="0,1,0,0">
-            <TextBlock Text="{Binding StatusMessage}" FontSize="12" Foreground="{ThemeResource TextFillColorSecondary}" />
         </Grid>
     </Grid>
 </Page>
