@@ -76,6 +76,10 @@ namespace MBW.App.ViewModels
 
         public Func<string, Task<bool>>? ConfirmDeleteAsync { get; set; }
 
+        public Func<string, string, Task<string?>>? PromptRenameAsync { get; set; }
+
+        private AttachmentClipboardEntry? _clipboard;
+
         [ObservableProperty]
         public partial bool IsEnabled { get; set; }
 
@@ -106,6 +110,16 @@ namespace MBW.App.ViewModels
         public string SearchPlaceholder => IsInsideFolder
             ? "Cari file di folder ini"
             : "Cari folder";
+
+        public bool CanCutItem => SelectedItem?.IsDeletable == true;
+
+        public bool CanCopyItem => SelectedItem is not null && SelectedItem.IsDeletable;
+
+        public bool CanRenameItem => SelectedItem?.IsDeletable == true;
+
+        public bool CanDeleteItem => SelectedItem?.IsDeletable == true;
+
+        public bool CanPasteItem => _clipboard is not null && GetPasteDestinationFolder() is not null;
 
         public Visibility BusyVisibility => IsBusy ? Visibility.Visible : Visibility.Collapsed;
 
@@ -155,6 +169,8 @@ namespace MBW.App.ViewModels
         }
 
         partial void OnSearchQueryChanged(string value) => ApplyFilterAndSort();
+
+        partial void OnSelectedItemChanged(AttachmentItemViewModel? value) => NotifyClipboardState();
 
         partial void OnIsBusyChanged(bool value) => OnPropertyChanged(nameof(BusyVisibility));
 
@@ -288,24 +304,25 @@ namespace MBW.App.ViewModels
             {
                 var term = SearchQuery.Trim();
                 query = query.Where(item =>
-                    item.Name.Contains(term, StringComparison.OrdinalIgnoreCase)
+                    item.DisplayName.Contains(term, StringComparison.OrdinalIgnoreCase)
+                    || item.Name.Contains(term, StringComparison.OrdinalIgnoreCase)
                     || item.TypeLabel.Contains(term, StringComparison.OrdinalIgnoreCase));
             }
 
             query = _sortColumn switch
             {
                 AttachmentSortColumn.Type => _sortAscending
-                    ? query.OrderBy(i => i.TypeLabel, StringComparer.OrdinalIgnoreCase).ThenBy(i => i.Name, StringComparer.OrdinalIgnoreCase)
-                    : query.OrderByDescending(i => i.TypeLabel, StringComparer.OrdinalIgnoreCase).ThenBy(i => i.Name, StringComparer.OrdinalIgnoreCase),
+                    ? query.OrderBy(i => i.TypeLabel, StringComparer.OrdinalIgnoreCase).ThenBy(i => i.DisplayName, StringComparer.OrdinalIgnoreCase)
+                    : query.OrderByDescending(i => i.TypeLabel, StringComparer.OrdinalIgnoreCase).ThenBy(i => i.DisplayName, StringComparer.OrdinalIgnoreCase),
                 AttachmentSortColumn.Size => _sortAscending
-                    ? query.OrderBy(i => i.IsFolder).ThenBy(i => i.SizeBytes ?? -1).ThenBy(i => i.Name, StringComparer.OrdinalIgnoreCase)
-                    : query.OrderBy(i => i.IsFolder).ThenByDescending(i => i.SizeBytes ?? -1).ThenBy(i => i.Name, StringComparer.OrdinalIgnoreCase),
+                    ? query.OrderBy(i => i.IsFolder).ThenBy(i => i.SizeBytes ?? -1).ThenBy(i => i.DisplayName, StringComparer.OrdinalIgnoreCase)
+                    : query.OrderBy(i => i.IsFolder).ThenByDescending(i => i.SizeBytes ?? -1).ThenBy(i => i.DisplayName, StringComparer.OrdinalIgnoreCase),
                 AttachmentSortColumn.Modified => _sortAscending
-                    ? query.OrderBy(i => i.ModifiedAt ?? DateTimeOffset.MinValue).ThenBy(i => i.Name, StringComparer.OrdinalIgnoreCase)
-                    : query.OrderByDescending(i => i.ModifiedAt ?? DateTimeOffset.MinValue).ThenBy(i => i.Name, StringComparer.OrdinalIgnoreCase),
+                    ? query.OrderBy(i => i.ModifiedAt ?? DateTimeOffset.MinValue).ThenBy(i => i.DisplayName, StringComparer.OrdinalIgnoreCase)
+                    : query.OrderByDescending(i => i.ModifiedAt ?? DateTimeOffset.MinValue).ThenBy(i => i.DisplayName, StringComparer.OrdinalIgnoreCase),
                 _ => _sortAscending
-                    ? query.OrderBy(i => i.IsFolder ? 0 : 1).ThenBy(i => i.Name, StringComparer.OrdinalIgnoreCase)
-                    : query.OrderByDescending(i => i.IsFolder ? 0 : 1).ThenByDescending(i => i.Name, StringComparer.OrdinalIgnoreCase)
+                    ? query.OrderBy(i => i.IsFolder ? 0 : 1).ThenBy(i => i.DisplayName, StringComparer.OrdinalIgnoreCase)
+                    : query.OrderByDescending(i => i.IsFolder ? 0 : 1).ThenByDescending(i => i.DisplayName, StringComparer.OrdinalIgnoreCase)
             };
 
             Items.Clear();
@@ -641,7 +658,7 @@ namespace MBW.App.ViewModels
             await LoadItemsFromDiskAsync();
         }
 
-        [RelayCommand]
+        [RelayCommand(CanExecute = nameof(CanDeleteItem))]
         private async Task DeleteItemAsync()
         {
             if (SelectedItem is null)
@@ -656,7 +673,7 @@ namespace MBW.App.ViewModels
                 return;
             }
 
-            if (ConfirmDeleteAsync is not null && !await ConfirmDeleteAsync(SelectedItem.Name))
+            if (ConfirmDeleteAsync is not null && !await ConfirmDeleteAsync(SelectedItem.DisplayName))
             {
                 StatusMessage = "Penghapusan dibatalkan.";
                 return;
@@ -678,6 +695,163 @@ namespace MBW.App.ViewModels
             {
                 IsBusy = false;
             }
+        }
+
+        [RelayCommand(CanExecute = nameof(CanCutItem))]
+        private void CutItem()
+        {
+            if (SelectedItem is null || !SelectedItem.IsDeletable)
+            {
+                return;
+            }
+
+            _clipboard = new AttachmentClipboardEntry(
+                SelectedItem.FullPath,
+                SelectedItem.Name,
+                SelectedItem.IsFolder,
+                isCut: true);
+            StatusMessage = $"\"{SelectedItem.DisplayName}\" siap dipindahkan.";
+            NotifyClipboardState();
+        }
+
+        [RelayCommand(CanExecute = nameof(CanCopyItem))]
+        private void CopyItem()
+        {
+            if (SelectedItem is null || !SelectedItem.IsDeletable)
+            {
+                return;
+            }
+
+            _clipboard = new AttachmentClipboardEntry(
+                SelectedItem.FullPath,
+                SelectedItem.Name,
+                SelectedItem.IsFolder,
+                isCut: false);
+            StatusMessage = $"\"{SelectedItem.DisplayName}\" disalin ke clipboard.";
+            NotifyClipboardState();
+        }
+
+        [RelayCommand(CanExecute = nameof(CanPasteItem))]
+        private async Task PasteItemAsync()
+        {
+            if (_clipboard is null)
+            {
+                return;
+            }
+
+            var destinationFolder = GetPasteDestinationFolder();
+            if (string.IsNullOrWhiteSpace(destinationFolder))
+            {
+                StatusMessage = "Tidak dapat menempel di lokasi ini.";
+                return;
+            }
+
+            try
+            {
+                IsBusy = true;
+                var isCut = _clipboard.IsCut;
+                var itemName = _clipboard.Name;
+
+                if (isCut)
+                {
+                    await _attachmentService.MoveEntryAsync(_clipboard.SourcePath, destinationFolder);
+                    _clipboard = null;
+                }
+                else
+                {
+                    await _attachmentService.CopyEntryAsync(_clipboard.SourcePath, destinationFolder);
+                }
+
+                await LoadItemsFromDiskAsync();
+                StatusMessage = isCut
+                    ? $"\"{itemName}\" dipindahkan."
+                    : $"\"{itemName}\" ditempel.";
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"Gagal menempel: {ex.Message}";
+            }
+            finally
+            {
+                IsBusy = false;
+                NotifyClipboardState();
+            }
+        }
+
+        [RelayCommand(CanExecute = nameof(CanRenameItem))]
+        private async Task RenameItemAsync()
+        {
+            if (SelectedItem is null || !SelectedItem.IsDeletable || PromptRenameAsync is null)
+            {
+                return;
+            }
+
+            var newName = await PromptRenameAsync(SelectedItem.Name, SelectedItem.IsFolder ? "folder" : "file");
+            if (string.IsNullOrWhiteSpace(newName))
+            {
+                return;
+            }
+
+            newName = SelectedItem.IsFolder
+                ? SanitizeFolderName(newName.Trim())
+                : SanitizeFileName(PreserveFileExtension(SelectedItem.Name, newName.Trim()));
+
+            if (string.IsNullOrWhiteSpace(newName)
+                || string.Equals(newName, SelectedItem.Name, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            try
+            {
+                IsBusy = true;
+                await _attachmentService.RenameEntryAsync(SelectedItem.FullPath, newName);
+                SelectedItem = null;
+                await LoadItemsFromDiskAsync();
+                StatusMessage = "Item diganti nama.";
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"Gagal mengganti nama: {ex.Message}";
+            }
+            finally
+            {
+                IsBusy = false;
+            }
+        }
+
+        private string? GetPasteDestinationFolder()
+        {
+            if (_clipboard is null)
+            {
+                return null;
+            }
+
+            if (IsInsideFolder && !string.IsNullOrWhiteSpace(_currentFolderPath))
+            {
+                return _currentFolderPath;
+            }
+
+            if (_location == AttachmentExplorerLocation.Root && _clipboard.IsFolder)
+            {
+                return _workspaceCoordinator.GetIndividualAttachmentsDirectory();
+            }
+
+            return null;
+        }
+
+        private void NotifyClipboardState()
+        {
+            OnPropertyChanged(nameof(CanCutItem));
+            OnPropertyChanged(nameof(CanCopyItem));
+            OnPropertyChanged(nameof(CanRenameItem));
+            OnPropertyChanged(nameof(CanDeleteItem));
+            OnPropertyChanged(nameof(CanPasteItem));
+            CutItemCommand.NotifyCanExecuteChanged();
+            CopyItemCommand.NotifyCanExecuteChanged();
+            RenameItemCommand.NotifyCanExecuteChanged();
+            DeleteItemCommand.NotifyCanExecuteChanged();
+            PasteItemCommand.NotifyCanExecuteChanged();
         }
 
         private void PushCurrentToBackStack()
@@ -733,6 +907,7 @@ namespace MBW.App.ViewModels
             OnPropertyChanged(nameof(ImportButtonLabel));
             OnPropertyChanged(nameof(SearchPlaceholder));
             OnPropertyChanged(nameof(CreateFolderVisibility));
+            NotifyClipboardState();
             NavigateBackCommand.NotifyCanExecuteChanged();
             NavigateForwardCommand.NotifyCanExecuteChanged();
             NavigateUpCommand.NotifyCanExecuteChanged();
@@ -793,6 +968,32 @@ namespace MBW.App.ViewModels
             }
 
             return name.Trim();
+        }
+
+        private static string SanitizeFileName(string name)
+        {
+            foreach (var c in Path.GetInvalidFileNameChars())
+            {
+                name = name.Replace(c, '_');
+            }
+
+            return name.Trim();
+        }
+
+        private static string PreserveFileExtension(string currentName, string newName)
+        {
+            var extension = Path.GetExtension(currentName);
+            if (string.IsNullOrEmpty(extension))
+            {
+                return newName;
+            }
+
+            if (string.IsNullOrEmpty(Path.GetExtension(newName)))
+            {
+                return newName + extension;
+            }
+
+            return newName;
         }
 
         private sealed class ExplorerSnapshot

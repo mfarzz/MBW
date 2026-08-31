@@ -8,6 +8,14 @@
     xmlns:conv="using:MBW.App.Converters"
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
 
+    <Page.KeyboardAccelerators>
+        <KeyboardAccelerator Key="X" Modifiers="Control" Invoked="ExplorerCut_Invoked" />
+        <KeyboardAccelerator Key="C" Modifiers="Control" Invoked="ExplorerCopy_Invoked" />
+        <KeyboardAccelerator Key="V" Modifiers="Control" Invoked="ExplorerPaste_Invoked" />
+        <KeyboardAccelerator Key="F2" Invoked="ExplorerRename_Invoked" />
+        <KeyboardAccelerator Key="Delete" Invoked="ExplorerDelete_Invoked" />
+    </Page.KeyboardAccelerators>
+
     <Page.Resources>
         <conv:AttachmentTypeBrushConverter x:Key="AttachmentTypeBrushConverter" />
         <Style x:Key="ExplorerNavButtonStyle" TargetType="Button">
@@ -16,6 +24,7 @@
             <Setter Property="Padding" Value="0" />
             <Setter Property="CornerRadius" Value="4" />
         </Style>
+        <Style x:Key="ExplorerToolbarButtonStyle" TargetType="Button" BasedOn="{StaticResource ExplorerNavButtonStyle}" />
         <Style x:Key="SortHeaderButtonStyle" TargetType="Button" BasedOn="{StaticResource ExplorerSortHeaderButtonStyle}" />
     </Page.Resources>
 
@@ -118,25 +127,52 @@
                                 VerticalAlignment="Center" />
             </Grid>
 
-            <StackPanel Orientation="Horizontal" Spacing="8">
+            <StackPanel Orientation="Horizontal" Spacing="4">
                 <Button Command="{Binding CreateFolderCommand}"
-                        Visibility="{Binding CreateFolderVisibility}">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <FontIcon Glyph="&#xE8F4;" FontSize="14" />
-                        <TextBlock Text="Folder baru" />
-                    </StackPanel>
+                        Visibility="{Binding CreateFolderVisibility}"
+                        ToolTipService.ToolTip="Folder baru">
+                    <FontIcon Glyph="&#xE8F4;" FontSize="14" />
                 </Button>
-                <Button Command="{Binding ImportCommand}">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <FontIcon Glyph="&#xE8B5;" FontSize="14" />
-                        <TextBlock Text="{Binding ImportButtonLabel}" />
-                    </StackPanel>
+                <Button Command="{Binding ImportCommand}"
+                        ToolTipService.ToolTip="{Binding ImportButtonLabel}">
+                    <FontIcon Glyph="&#xE8B5;" FontSize="14" />
                 </Button>
-                <Button Content="Hapus"
-                        Command="{Binding DeleteItemCommand}" />
+
+                <Border Width="1"
+                        Height="20"
+                        Margin="4,6"
+                        Background="{ThemeResource DividerStrokeColorDefaultBrush}" />
+
+                <Button Style="{StaticResource ExplorerToolbarButtonStyle}"
+                        Command="{Binding CutItemCommand}"
+                        ToolTipService.ToolTip="Cut (Ctrl+X)">
+                    <FontIcon Glyph="&#xE8C6;" FontSize="14" />
+                </Button>
+                <Button Style="{StaticResource ExplorerToolbarButtonStyle}"
+                        Command="{Binding CopyItemCommand}"
+                        ToolTipService.ToolTip="Copy (Ctrl+C)">
+                    <FontIcon Glyph="&#xE8C8;" FontSize="14" />
+                </Button>
+                <Button Style="{StaticResource ExplorerToolbarButtonStyle}"
+                        Command="{Binding PasteItemCommand}"
+                        ToolTipService.ToolTip="Paste (Ctrl+V)">
+                    <FontIcon Glyph="&#xE77F;" FontSize="14" />
+                </Button>
+                <Button Style="{StaticResource ExplorerToolbarButtonStyle}"
+                        Command="{Binding RenameItemCommand}"
+                        ToolTipService.ToolTip="Rename (F2)">
+                    <FontIcon Glyph="&#xE8AC;" FontSize="14" />
+                </Button>
+                <Button Style="{StaticResource ExplorerToolbarButtonStyle}"
+                        Command="{Binding DeleteItemCommand}"
+                        ToolTipService.ToolTip="Delete (Del)">
+                    <FontIcon Glyph="&#xE74D;" FontSize="14" />
+                </Button>
+
                 <ProgressRing IsActive="{Binding IsBusy}"
                               Width="20"
                               Height="20"
+                              Margin="8,0,0,0"
                               Visibility="{Binding BusyVisibility}" />
             </StackPanel>
 
@@ -261,12 +297,66 @@
                               SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
                               SelectionMode="Single"
                               DoubleTapped="ExplorerList_DoubleTapped"
+                              RightTapped="ExplorerList_RightTapped"
                               ScrollViewer.VerticalScrollMode="Disabled"
                               ScrollViewer.HorizontalScrollMode="Disabled">
                         <ListView.ItemContainerStyle>
                             <Style TargetType="ListViewItem">
                                 <Setter Property="HorizontalContentAlignment" Value="Stretch" />
                                 <Setter Property="Padding" Value="0" />
+                                <Setter Property="ContextFlyout">
+                                    <Setter.Value>
+                                        <MenuFlyout Opening="ExplorerContextFlyout_Opening">
+                                            <MenuFlyoutItem Text="Rename"
+                                                            Click="ExplorerContextRename_Click">
+                                                <MenuFlyoutItem.Icon>
+                                                    <FontIcon Glyph="&#xE8AC;" />
+                                                </MenuFlyoutItem.Icon>
+                                                <MenuFlyoutItem.KeyboardAccelerators>
+                                                    <KeyboardAccelerator Key="F2" />
+                                                </MenuFlyoutItem.KeyboardAccelerators>
+                                            </MenuFlyoutItem>
+                                            <MenuFlyoutSeparator />
+                                            <MenuFlyoutItem Text="Cut"
+                                                            Click="ExplorerContextCut_Click">
+                                                <MenuFlyoutItem.Icon>
+                                                    <FontIcon Glyph="&#xE8C6;" />
+                                                </MenuFlyoutItem.Icon>
+                                                <MenuFlyoutItem.KeyboardAccelerators>
+                                                    <KeyboardAccelerator Key="X" Modifiers="Control" />
+                                                </MenuFlyoutItem.KeyboardAccelerators>
+                                            </MenuFlyoutItem>
+                                            <MenuFlyoutItem Text="Copy"
+                                                            Click="ExplorerContextCopy_Click">
+                                                <MenuFlyoutItem.Icon>
+                                                    <FontIcon Glyph="&#xE8C8;" />
+                                                </MenuFlyoutItem.Icon>
+                                                <MenuFlyoutItem.KeyboardAccelerators>
+                                                    <KeyboardAccelerator Key="C" Modifiers="Control" />
+                                                </MenuFlyoutItem.KeyboardAccelerators>
+                                            </MenuFlyoutItem>
+                                            <MenuFlyoutItem Text="Paste"
+                                                            Click="ExplorerContextPaste_Click">
+                                                <MenuFlyoutItem.Icon>
+                                                    <FontIcon Glyph="&#xE77F;" />
+                                                </MenuFlyoutItem.Icon>
+                                                <MenuFlyoutItem.KeyboardAccelerators>
+                                                    <KeyboardAccelerator Key="V" Modifiers="Control" />
+                                                </MenuFlyoutItem.KeyboardAccelerators>
+                                            </MenuFlyoutItem>
+                                            <MenuFlyoutSeparator />
+                                            <MenuFlyoutItem Text="Delete"
+                                                            Click="ExplorerContextDelete_Click">
+                                                <MenuFlyoutItem.Icon>
+                                                    <FontIcon Glyph="&#xE74D;" />
+                                                </MenuFlyoutItem.Icon>
+                                                <MenuFlyoutItem.KeyboardAccelerators>
+                                                    <KeyboardAccelerator Key="Delete" />
+                                                </MenuFlyoutItem.KeyboardAccelerators>
+                                            </MenuFlyoutItem>
+                                        </MenuFlyout>
+                                    </Setter.Value>
+                                </Setter>
                             </Style>
                         </ListView.ItemContainerStyle>
                         <ListView.ItemTemplate>
@@ -281,7 +371,7 @@
                                                   FontSize="14"
                                                   Foreground="{x:Bind TypeLabel, Converter={StaticResource AttachmentTypeBrushConverter}}"
                                                   Opacity="0.9" />
-                                        <TextBlock Text="{x:Bind Name}"
+                                        <TextBlock Text="{x:Bind DisplayName}"
                                                    VerticalAlignment="Center"
                                                    TextTrimming="CharacterEllipsis" />
                                     </StackPanel>

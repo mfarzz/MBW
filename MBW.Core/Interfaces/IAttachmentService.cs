@@ -30,6 +30,12 @@ namespace MBW.Core.Interfaces
 
         Task DeletePathAsync(string path, CancellationToken cancellationToken = default);
 
+        Task CopyEntryAsync(string sourcePath, string destinationFolder, CancellationToken cancellationToken = default);
+
+        Task MoveEntryAsync(string sourcePath, string destinationFolder, CancellationToken cancellationToken = default);
+
+        Task RenameEntryAsync(string sourcePath, string newName, CancellationToken cancellationToken = default);
+
         string ResolvePattern(string pattern, IReadOnlyDictionary<string, string> fields);
     }
 }

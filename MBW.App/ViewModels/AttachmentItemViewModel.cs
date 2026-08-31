@@ -15,6 +15,9 @@ namespace MBW.App.ViewModels
             DateTimeOffset? modifiedAt)
         {
             Name = name;
+            DisplayName = isFolder || itemType != AttachmentItemType.File
+                ? name
+                : Path.GetFileNameWithoutExtension(name);
             FullPath = fullPath;
             IsFolder = isFolder;
             ItemType = itemType;
@@ -41,6 +44,8 @@ namespace MBW.App.ViewModels
         }
 
         public string Name { get; }
+
+        public string DisplayName { get; }
 
         public string FullPath { get; }
 

@@ -99,7 +99,12 @@ namespace MBW.Infrastructure.Attachments
                     Directory.CreateDirectory(directory);
                 }
 
-                File.Copy(sourcePath, destinationPath, overwrite: true);
+                if (File.Exists(destinationPath))
+                {
+                    File.Delete(destinationPath);
+                }
+
+                CopyFileWithShare(sourcePath, destinationPath);
                 return destinationPath;
             }, cancellationToken);
         }
@@ -124,7 +129,7 @@ namespace MBW.Infrastructure.Attachments
                     }
 
                     var destinationPath = Path.Combine(destinationFolder, Path.GetFileName(sourcePath));
-                    File.Copy(sourcePath, destinationPath, overwrite: true);
+                    CopyFileWithShare(sourcePath, destinationPath);
                     count++;
                 }
 
@@ -234,6 +239,123 @@ namespace MBW.Infrastructure.Attachments
             }, cancellationToken);
         }
 
+        public Task CopyEntryAsync(string sourcePath, string destinationFolder, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(sourcePath))
+            {
+                throw new ArgumentException("Source path cannot be empty", nameof(sourcePath));
+            }
+
+            if (string.IsNullOrWhiteSpace(destinationFolder))
+            {
+                throw new ArgumentException("Destination folder cannot be empty", nameof(destinationFolder));
+            }
+
+            return Task.Run(() =>
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                Directory.CreateDirectory(destinationFolder);
+                var name = Path.GetFileName(sourcePath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+
+                if (File.Exists(sourcePath))
+                {
+                    var destinationPath = GetUniqueCopyDestination(sourcePath, destinationFolder, name, isDirectory: false);
+                    CopyFileWithShare(sourcePath, destinationPath);
+                    return;
+                }
+
+                if (Directory.Exists(sourcePath))
+                {
+                    var destinationPath = GetUniqueCopyDestination(sourcePath, destinationFolder, name, isDirectory: true);
+                    CopyDirectoryRecursive(sourcePath, destinationPath, cancellationToken);
+                }
+            }, cancellationToken);
+        }
+
+        public Task MoveEntryAsync(string sourcePath, string destinationFolder, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(sourcePath))
+            {
+                throw new ArgumentException("Source path cannot be empty", nameof(sourcePath));
+            }
+
+            if (string.IsNullOrWhiteSpace(destinationFolder))
+            {
+                throw new ArgumentException("Destination folder cannot be empty", nameof(destinationFolder));
+            }
+
+            return Task.Run(() =>
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                Directory.CreateDirectory(destinationFolder);
+                var name = Path.GetFileName(sourcePath.TrimEnd(Path.DirectorySeparatorChar));
+                var destinationPath = Path.Combine(destinationFolder, name);
+
+                if (File.Exists(sourcePath))
+                {
+                    if (File.Exists(destinationPath))
+                    {
+                        File.Delete(destinationPath);
+                    }
+
+                    File.Move(sourcePath, destinationPath);
+                    return;
+                }
+
+                if (Directory.Exists(sourcePath))
+                {
+                    if (Directory.Exists(destinationPath))
+                    {
+                        Directory.Delete(destinationPath, recursive: true);
+                    }
+
+                    Directory.Move(sourcePath, destinationPath);
+                }
+            }, cancellationToken);
+        }
+
+        public Task RenameEntryAsync(string sourcePath, string newName, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(sourcePath))
+            {
+                throw new ArgumentException("Source path cannot be empty", nameof(sourcePath));
+            }
+
+            if (string.IsNullOrWhiteSpace(newName))
+            {
+                throw new ArgumentException("New name cannot be empty", nameof(newName));
+            }
+
+            return Task.Run(() =>
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var parent = Path.GetDirectoryName(sourcePath)
+                    ?? throw new InvalidOperationException("Cannot determine parent directory.");
+                var destinationPath = Path.Combine(parent, newName);
+
+                if (File.Exists(sourcePath))
+                {
+                    if (File.Exists(destinationPath))
+                    {
+                        throw new IOException($"A file named \"{newName}\" already exists.");
+                    }
+
+                    File.Move(sourcePath, destinationPath);
+                    return;
+                }
+
+                if (Directory.Exists(sourcePath))
+                {
+                    if (Directory.Exists(destinationPath))
+                    {
+                        throw new IOException($"A folder named \"{newName}\" already exists.");
+                    }
+
+                    Directory.Move(sourcePath, destinationPath);
+                }
+            }, cancellationToken);
+        }
+
         public string ResolvePattern(string pattern, IReadOnlyDictionary<string, string> fields) =>
             TemplateVariableExtractor.RenderTemplate(pattern, fields);
 
@@ -242,6 +364,93 @@ namespace MBW.Infrastructure.Attachments
             if (string.IsNullOrWhiteSpace(folderPath))
             {
                 throw new ArgumentException("Folder path cannot be empty", nameof(folderPath));
+            }
+        }
+
+        private static void CopyFileWithShare(string sourcePath, string destinationPath)
+        {
+            var directory = Path.GetDirectoryName(destinationPath);
+            if (!string.IsNullOrWhiteSpace(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            using var source = new FileStream(
+                sourcePath,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.ReadWrite | FileShare.Delete);
+            using var destination = new FileStream(
+                destinationPath,
+                FileMode.Create,
+                FileAccess.Write,
+                FileShare.None);
+            source.CopyTo(destination);
+        }
+
+        private static string GetUniqueCopyDestination(
+            string sourcePath,
+            string destinationFolder,
+            string name,
+            bool isDirectory)
+        {
+            var destinationPath = Path.Combine(destinationFolder, name);
+            if (!PathsEqual(sourcePath, destinationPath)
+                && !File.Exists(destinationPath)
+                && !Directory.Exists(destinationPath))
+            {
+                return destinationPath;
+            }
+
+            var baseName = Path.GetFileNameWithoutExtension(name);
+            var extension = Path.GetExtension(name);
+
+            for (var counter = 1; counter < 1000; counter++)
+            {
+                var candidateName = isDirectory
+                    ? $"{name} ({counter})"
+                    : $"{baseName} ({counter}){extension}";
+                destinationPath = Path.Combine(destinationFolder, candidateName);
+
+                if (!PathsEqual(sourcePath, destinationPath)
+                    && !File.Exists(destinationPath)
+                    && !Directory.Exists(destinationPath))
+                {
+                    return destinationPath;
+                }
+            }
+
+            throw new IOException($"Unable to create a unique copy name for \"{name}\".");
+        }
+
+        private static bool PathsEqual(string left, string right) =>
+            string.Equals(
+                Path.GetFullPath(left.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)),
+                Path.GetFullPath(right.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)),
+                StringComparison.OrdinalIgnoreCase);
+
+        private static void CopyDirectoryRecursive(string sourceDir, string destinationDir, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Directory.CreateDirectory(destinationDir);
+
+            foreach (var file in Directory.EnumerateFiles(sourceDir))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!AllowedExtensions.Contains(Path.GetExtension(file)))
+                {
+                    continue;
+                }
+
+                var destinationFile = Path.Combine(destinationDir, Path.GetFileName(file));
+                CopyFileWithShare(file, destinationFile);
+            }
+
+            foreach (var directory in Directory.EnumerateDirectories(sourceDir))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var destinationSubDir = Path.Combine(destinationDir, Path.GetFileName(directory));
+                CopyDirectoryRecursive(directory, destinationSubDir, cancellationToken);
             }
         }
     }
