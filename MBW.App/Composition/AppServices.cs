@@ -2,6 +2,7 @@ using MBW.App.Platform;
 using MBW.App.ViewModels;
 using MBW.Core.Interfaces;
 using MBW.Core.Services;
+using MBW.Infrastructure.Attachments;
 using MBW.Infrastructure.Email;
 using MBW.Infrastructure.Excel;
 using MBW.Infrastructure.Services;
@@ -22,6 +23,8 @@ namespace MBW.App.Composition
 
         public static IExcelImporter ExcelImporter { get; private set; } = null!;
 
+        public static IAttachmentService AttachmentService { get; private set; } = null!;
+
         public static ISmtpSettingsService SmtpSettingsService { get; private set; } = null!;
 
         public static IRecentProjectsService RecentProjectsService { get; private set; } = null!;
@@ -33,6 +36,7 @@ namespace MBW.App.Composition
         public static WelcomeViewModel WelcomeViewModel { get; private set; } = null!;
 
         private static DatabaseViewModel? _databaseViewModel;
+        private static AttachmentsViewModel? _attachmentsViewModel;
 
         private static Window? _mainWindow;
 
@@ -50,6 +54,7 @@ namespace MBW.App.Composition
 
             WorkspaceService = new WorkspaceService(new StorageService());
             ExcelImporter = new ExcelImporter();
+            AttachmentService = new AttachmentService();
             SmtpSettingsService = new SmtpSettingsService();
             RecentProjectsService = new RecentProjectsService();
 
@@ -70,6 +75,15 @@ namespace MBW.App.Composition
         }
 
         public static DatabaseViewModel CreateDatabaseViewModel() => GetDatabaseViewModel();
+
+        public static AttachmentsViewModel GetAttachmentsViewModel()
+        {
+            return _attachmentsViewModel ??= new AttachmentsViewModel(
+                WorkspaceCoordinator,
+                AttachmentService);
+        }
+
+        public static AttachmentsViewModel CreateAttachmentsViewModel() => GetAttachmentsViewModel();
 
         public static EmailEditorViewModel CreateEmailEditorViewModel()
         {

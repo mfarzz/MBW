@@ -13,6 +13,7 @@ namespace MBW.Core.Models
         public string? DataSheetName { get; set; }
         public int DataHeaderRow { get; set; } = 1;
         public string? AttachmentsFolder { get; set; }
+        public AttachmentConfiguration AttachmentConfiguration { get; set; } = AttachmentConfiguration.CreateDefault();
         public SendConfiguration? Configuration { get; set; }
         public IDictionary<string, string> Metadata { get; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;

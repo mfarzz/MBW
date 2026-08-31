@@ -3,6 +3,8 @@ using MBW.Core.Interfaces;
 using MBW.Core.Models;
 using MBW.Core.Services;
 using System;
+using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace MBW.App.ViewModels
@@ -28,11 +30,13 @@ namespace MBW.App.ViewModels
             {
                 SyncFromCoordinator(saved: true);
                 _ = SyncDatabaseStatusAsync();
+                SyncAttachmentStatus();
             };
             _smtpCoordinator.Changed += (_, _) => SyncSmtpFromCoordinator();
             SyncFromCoordinator(saved: false);
             SyncSmtpFromCoordinator();
             _ = SyncDatabaseStatusAsync();
+            SyncAttachmentStatus();
         }
 
         [ObservableProperty]
@@ -52,6 +56,9 @@ namespace MBW.App.ViewModels
 
         [ObservableProperty]
         public partial string DatabaseStatusText { get; set; } = "Database: —";
+
+        [ObservableProperty]
+        public partial string AttachmentStatusText { get; set; } = "Attachments: —";
 
         public event EventHandler? WorkspaceChanged;
 
@@ -177,6 +184,46 @@ namespace MBW.App.ViewModels
             catch
             {
                 DatabaseStatusText = "Database: gagal dimuat";
+            }
+        }
+
+        private void SyncAttachmentStatus()
+        {
+            if (!_workspaceCoordinator.HasWorkspace)
+            {
+                AttachmentStatusText = "Attachments: —";
+                return;
+            }
+
+            var config = _workspaceCoordinator.GetAttachmentConfiguration();
+            if (!config.Enabled)
+            {
+                AttachmentStatusText = "Attachments: —";
+                return;
+            }
+
+            try
+            {
+                var sharedPath = _workspaceCoordinator.GetSharedAttachmentsDirectory();
+                var individualPath = _workspaceCoordinator.GetIndividualAttachmentsDirectory();
+                var sharedCount = Directory.Exists(sharedPath)
+                    ? Directory.EnumerateFiles(sharedPath).Count()
+                    : 0;
+                var individualCount = Directory.Exists(individualPath)
+                    ? Directory.EnumerateDirectories(individualPath).Count()
+                    : 0;
+
+                if (sharedCount == 0 && individualCount == 0)
+                {
+                    AttachmentStatusText = "Attachments: belum diisi";
+                    return;
+                }
+
+                AttachmentStatusText = $"Attachments: {sharedCount} shared · {individualCount} individual";
+            }
+            catch
+            {
+                AttachmentStatusText = "Attachments: gagal dimuat";
             }
         }
     }

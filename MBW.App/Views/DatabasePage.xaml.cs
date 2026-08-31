@@ -138,10 +138,16 @@ namespace MBW.App.Views
 
         private static Grid BuildRow(System.Collections.Generic.IReadOnlyList<string> cells, bool isHeader, int columnCount)
         {
+            var dividerBrush = Application.Current.Resources["DividerStrokeColorDefaultBrush"] as Brush;
             var grid = new Grid
             {
-                Padding = new Thickness(12, 8, 12, 8)
+                MinHeight = isHeader ? 36 : 36
             };
+
+            if (isHeader)
+            {
+                grid.Height = 36;
+            }
 
             for (var i = 0; i < columnCount; i++)
             {
@@ -151,6 +157,14 @@ namespace MBW.App.Views
             for (var i = 0; i < columnCount; i++)
             {
                 var value = i < cells.Count ? cells[i] : string.Empty;
+                var isLastColumn = i == columnCount - 1;
+                var cellBorder = new Border
+                {
+                    BorderBrush = dividerBrush,
+                    BorderThickness = new Thickness(0, 0, isLastColumn ? 0 : 1, 0),
+                    VerticalAlignment = VerticalAlignment.Stretch
+                };
+
                 var block = new TextBlock
                 {
                     Text = value,
@@ -158,10 +172,17 @@ namespace MBW.App.Views
                     TextTrimming = TextTrimming.CharacterEllipsis,
                     FontWeight = isHeader
                         ? Microsoft.UI.Text.FontWeights.SemiBold
-                        : Microsoft.UI.Text.FontWeights.Normal
+                        : Microsoft.UI.Text.FontWeights.Normal,
+                    HorizontalAlignment = Microsoft.UI.Xaml.HorizontalAlignment.Left,
+                    VerticalAlignment = isHeader
+                        ? VerticalAlignment.Bottom
+                        : VerticalAlignment.Center,
+                    Margin = new Thickness(12, 0, 8, isHeader ? 6 : 0)
                 };
-                Grid.SetColumn(block, i);
-                grid.Children.Add(block);
+
+                cellBorder.Child = block;
+                Grid.SetColumn(cellBorder, i);
+                grid.Children.Add(cellBorder);
             }
 
             return grid;

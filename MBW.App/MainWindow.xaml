@@ -213,7 +213,7 @@
                 <TextBlock Text="SMTP: Connected" Foreground="White" FontSize="11" VerticalAlignment="Center" />
             </StackPanel>
             <TextBlock x:Name="DatabaseStatusText" Grid.Column="1" Text="Database: —" Foreground="White" FontSize="11" Margin="16,0,0,0" VerticalAlignment="Center" />
-            <TextBlock Grid.Column="2" Text="Attachments: 1,240 matched" Foreground="White" FontSize="11" Margin="16,0,0,0" VerticalAlignment="Center" />
+            <TextBlock x:Name="AttachmentStatusText" Grid.Column="2" Text="Attachments: —" Foreground="White" FontSize="11" Margin="16,0,0,0" VerticalAlignment="Center" />
             <TextBlock x:Name="StatusWorkspaceText" Grid.Column="4" Text="Seminar-FTI" Foreground="White" FontSize="11" Margin="0,0,16,0" VerticalAlignment="Center" />
             <TextBlock Grid.Column="5" Text="UTF-8" Foreground="White" FontSize="11" Margin="0,0,16,0" VerticalAlignment="Center" />
             <StackPanel Grid.Column="6" Orientation="Horizontal" Spacing="6" Margin="0,0,12,0" VerticalAlignment="Center">

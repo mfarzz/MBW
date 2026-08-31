@@ -217,7 +217,8 @@ namespace MBW.App
                 or nameof(ShellViewModel.WorkspaceSavedText)
                 or nameof(ShellViewModel.SmtpStatusText)
                 or nameof(ShellViewModel.SmtpIsConnected)
-                or nameof(ShellViewModel.DatabaseStatusText))
+                or nameof(ShellViewModel.DatabaseStatusText)
+                or nameof(ShellViewModel.AttachmentStatusText))
             {
                 SyncShellLabels();
             }
@@ -255,6 +256,11 @@ namespace MBW.App
             if (FindElement<TextBlock>("DatabaseStatusText") is TextBlock databaseStatus)
             {
                 databaseStatus.Text = _shellViewModel.DatabaseStatusText;
+            }
+
+            if (FindElement<TextBlock>("AttachmentStatusText") is TextBlock attachmentStatus)
+            {
+                attachmentStatus.Text = _shellViewModel.AttachmentStatusText;
             }
         }
 

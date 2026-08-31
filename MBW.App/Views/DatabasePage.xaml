@@ -98,6 +98,7 @@
                             Background="{ThemeResource SubtleFillColorSecondaryBrush}"
                             BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
                             BorderThickness="0,0,0,1"
+                            Height="{StaticResource ExplorerTableHeaderHeight}"
                             MinWidth="400" />
                 </ScrollViewer>
 

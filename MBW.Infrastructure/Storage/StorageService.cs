@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
@@ -35,6 +36,8 @@ namespace MBW.Infrastructure.Storage
             // Create subdirectories
             Directory.CreateDirectory(Path.Combine(destinationPath, DataFolder));
             Directory.CreateDirectory(Path.Combine(destinationPath, AttachmentsFolder));
+            Directory.CreateDirectory(Path.Combine(destinationPath, AttachmentsFolder, "shared"));
+            Directory.CreateDirectory(Path.Combine(destinationPath, AttachmentsFolder, "individual"));
             Directory.CreateDirectory(Path.Combine(destinationPath, LogsFolder));
 
             // Serialize and save workspace.json
@@ -93,6 +96,7 @@ namespace MBW.Infrastructure.Storage
             public string? DataSheetName { get; set; }
             public int DataHeaderRow { get; set; } = 1;
             public string? AttachmentsFolder { get; set; }
+            public AttachmentConfigurationDto? AttachmentConfiguration { get; set; }
             public SendConfigurationDto? Configuration { get; set; }
             public Dictionary<string, string>? Metadata { get; set; }
             public DateTimeOffset CreatedAt { get; set; }
@@ -115,6 +119,7 @@ namespace MBW.Infrastructure.Storage
                 DataSheetName = model.DataSheetName;
                 DataHeaderRow = model.DataHeaderRow > 0 ? model.DataHeaderRow : 1;
                 AttachmentsFolder = model.AttachmentsFolder;
+                AttachmentConfiguration = AttachmentConfigurationDto.FromModel(model.AttachmentConfiguration);
                 Configuration = model.Configuration != null ? new SendConfigurationDto
                 {
                     SmtpAccountId = model.Configuration.SmtpAccountId,
@@ -138,7 +143,9 @@ namespace MBW.Infrastructure.Storage
                     DataFilePath = DataFilePath,
                     DataSheetName = DataSheetName,
                     DataHeaderRow = DataHeaderRow > 0 ? DataHeaderRow : 1,
-                    AttachmentsFolder = AttachmentsFolder
+                    AttachmentsFolder = AttachmentsFolder,
+                    AttachmentConfiguration = AttachmentConfiguration?.ToModel()
+                        ?? global::MBW.Core.Models.AttachmentConfiguration.CreateDefault()
                 };
 
                 // Use reflection to set read-init properties
@@ -197,6 +204,21 @@ namespace MBW.Infrastructure.Storage
             public string? FromName { get; set; }
             public string? FromEmail { get; set; }
             public bool TestMode { get; set; }
+        }
+
+        private class AttachmentConfigurationDto
+        {
+            public bool Enabled { get; set; }
+
+            public static AttachmentConfigurationDto FromModel(AttachmentConfiguration model) => new()
+            {
+                Enabled = model.Enabled
+            };
+
+            public AttachmentConfiguration ToModel() => new()
+            {
+                Enabled = Enabled
+            };
         }
     }
 }

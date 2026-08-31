@@ -9,6 +9,7 @@
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
+                <ResourceDictionary Source="ms-appx:///Styles/ExplorerTableStyles.xaml" />
             </ResourceDictionary.MergedDictionaries>
 
             <!-- MBW shell palette — matches reference mockup -->

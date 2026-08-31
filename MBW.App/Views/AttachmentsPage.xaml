@@ -1,15 +1,327 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Page
     x:Class="MBW.App.Views.AttachmentsPage"
+    x:Name="AttachmentsRoot"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:MBW.App.ViewModels"
+    xmlns:conv="using:MBW.App.Converters"
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
-    <StackPanel Padding="32" Spacing="12">
-        <TextBlock Text="Attachments" FontSize="28" FontWeight="SemiBold" />
-        <TextBlock Text="Manage shared and recipient-specific email attachments." Opacity="0.7" />
-        <Button Content="Add attachment folder" HorizontalAlignment="Left" />
-        <Border BorderBrush="{ThemeResource CardStrokeColorDefault}" BorderThickness="1" Padding="20" Margin="0,16,0,0">
-            <TextBlock Text="No attachments loaded yet." Opacity="0.7" />
+
+    <Page.Resources>
+        <conv:AttachmentTypeBrushConverter x:Key="AttachmentTypeBrushConverter" />
+        <Style x:Key="ExplorerNavButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="32" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="CornerRadius" Value="4" />
+        </Style>
+        <Style x:Key="SortHeaderButtonStyle" TargetType="Button" BasedOn="{StaticResource ExplorerSortHeaderButtonStyle}" />
+    </Page.Resources>
+
+    <Grid Padding="32">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+            <StackPanel Grid.Column="0" Spacing="6" Margin="0,0,16,0">
+                <TextBlock Text="Attachments" FontSize="28" FontWeight="SemiBold" />
+                <TextBlock Text="Kelola folder dan file lampiran. Folder shared untuk semua penerima; folder individual untuk lampiran per penerima."
+                           Opacity="0.7"
+                           TextWrapping="Wrap" />
+            </StackPanel>
+            <ToggleSwitch Grid.Column="1"
+                          IsOn="{Binding IsEnabled, Mode=TwoWay}"
+                          VerticalAlignment="Top"
+                          Visibility="{Binding ToggleVisibility}" />
+        </Grid>
+
+        <StackPanel Grid.Row="1" Margin="0,16,0,12" Spacing="10" Visibility="{Binding ContentVisibility}">
+            <Border Padding="12"
+                    Background="{ThemeResource CardBackgroundFillColorSecondary}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefault}"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Visibility="{Binding NoWorkspaceVisibility}">
+                <TextBlock Text="Buat atau buka workspace terlebih dahulu."
+                           TextWrapping="Wrap"
+                           Opacity="0.85" />
+            </Border>
+
+            <Grid ColumnDefinitions="Auto,*,280" ColumnSpacing="8">
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                    <Button Style="{StaticResource ExplorerNavButtonStyle}"
+                            Command="{Binding NavigateBackCommand}"
+                            ToolTipService.ToolTip="Kembali">
+                        <FontIcon Glyph="&#xE72B;" FontSize="12" />
+                    </Button>
+                    <Button Style="{StaticResource ExplorerNavButtonStyle}"
+                            Command="{Binding NavigateForwardCommand}"
+                            ToolTipService.ToolTip="Maju">
+                        <FontIcon Glyph="&#xE72A;" FontSize="12" />
+                    </Button>
+                    <Button Style="{StaticResource ExplorerNavButtonStyle}"
+                            Command="{Binding NavigateUpCommand}"
+                            ToolTipService.ToolTip="Naik">
+                        <FontIcon Glyph="&#xE74B;" FontSize="12" />
+                    </Button>
+                    <Button Style="{StaticResource ExplorerNavButtonStyle}"
+                            Command="{Binding RefreshCommand}"
+                            ToolTipService.ToolTip="Refresh">
+                        <FontIcon Glyph="&#xE72C;" FontSize="12" />
+                    </Button>
+                </StackPanel>
+
+                <Border Grid.Column="1"
+                        Background="{ThemeResource CardBackgroundFillColorSecondary}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefault}"
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        Padding="8,4"
+                        MinHeight="32"
+                        VerticalAlignment="Center">
+                    <ItemsControl ItemsSource="{Binding BreadcrumbSegments}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" Spacing="4" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:BreadcrumbSegmentViewModel">
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                    <HyperlinkButton Content="{x:Bind Label}"
+                                                     Command="{x:Bind NavigateCommand}"
+                                                     Visibility="{x:Bind LinkVisibility}" />
+                                    <TextBlock Text="{x:Bind Label}"
+                                               VerticalAlignment="Center"
+                                               FontSize="12"
+                                               Visibility="{x:Bind LabelVisibility}" />
+                                    <TextBlock Text="›"
+                                               VerticalAlignment="Center"
+                                               Opacity="0.5"
+                                               FontSize="12"
+                                               Margin="0,0,4,0"
+                                               Visibility="{x:Bind ChevronVisibility}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Border>
+
+                <AutoSuggestBox Grid.Column="2"
+                                PlaceholderText="{Binding SearchPlaceholder}"
+                                Text="{Binding SearchQuery, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                QueryIcon="Find"
+                                VerticalAlignment="Center" />
+            </Grid>
+
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Command="{Binding CreateFolderCommand}"
+                        Visibility="{Binding CreateFolderVisibility}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE8F4;" FontSize="14" />
+                        <TextBlock Text="Folder baru" />
+                    </StackPanel>
+                </Button>
+                <Button Command="{Binding ImportCommand}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE8B5;" FontSize="14" />
+                        <TextBlock Text="{Binding ImportButtonLabel}" />
+                    </StackPanel>
+                </Button>
+                <Button Content="Hapus"
+                        Command="{Binding DeleteItemCommand}" />
+                <ProgressRing IsActive="{Binding IsBusy}"
+                              Width="20"
+                              Height="20"
+                              Visibility="{Binding BusyVisibility}" />
+            </StackPanel>
+
+            <TextBlock Text="{Binding StatusMessage}"
+                       FontSize="12"
+                       Foreground="{ThemeResource TextFillColorSecondary}"
+                       TextWrapping="Wrap" />
+        </StackPanel>
+
+        <Border Grid.Row="2"
+                BorderBrush="{ThemeResource CardStrokeColorDefault}"
+                BorderThickness="1"
+                Background="{ThemeResource CardBackgroundFillColorDefault}"
+                Visibility="{Binding ContentVisibility}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <ScrollViewer x:Name="HeaderScrollViewer"
+                              Grid.Row="0"
+                              HorizontalScrollBarVisibility="Hidden"
+                              VerticalScrollBarVisibility="Disabled"
+                              ViewChanged="HeaderScrollViewer_ViewChanged">
+                    <Grid MinWidth="720"
+                          Height="{StaticResource ExplorerTableHeaderHeight}"
+                          Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                          BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
+                          BorderThickness="0,0,0,1"
+                          ColumnDefinitions="*,100,100,140">
+                        <Border Grid.Column="0" Style="{StaticResource ExplorerColumnSeparatorBorderStyle}">
+                            <Button Style="{StaticResource SortHeaderButtonStyle}"
+                                    Command="{Binding SortByNameCommand}">
+                                <Grid>
+                                    <FontIcon Glyph="{Binding NameSortIndicator}"
+                                              FontSize="8"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Top"
+                                              Margin="0,5,0,0"
+                                              Visibility="{Binding NameSortVisibility}" />
+                                    <TextBlock Text="Nama"
+                                               FontWeight="SemiBold"
+                                               FontSize="12"
+                                               HorizontalAlignment="Left"
+                                               VerticalAlignment="Bottom"
+                                               Margin="12,0,8,6" />
+                                </Grid>
+                            </Button>
+                        </Border>
+
+                        <Border Grid.Column="1" Style="{StaticResource ExplorerColumnSeparatorBorderStyle}">
+                            <Button Style="{StaticResource SortHeaderButtonStyle}"
+                                    Command="{Binding SortByTypeCommand}">
+                                <Grid>
+                                    <FontIcon Glyph="{Binding TypeSortIndicator}"
+                                              FontSize="8"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Top"
+                                              Margin="0,5,0,0"
+                                              Visibility="{Binding TypeSortVisibility}" />
+                                    <TextBlock Text="Tipe"
+                                               FontWeight="SemiBold"
+                                               FontSize="12"
+                                               HorizontalAlignment="Left"
+                                               VerticalAlignment="Bottom"
+                                               Margin="12,0,8,6" />
+                                </Grid>
+                            </Button>
+                        </Border>
+
+                        <Border Grid.Column="2" Style="{StaticResource ExplorerColumnSeparatorBorderStyle}">
+                            <Button Style="{StaticResource SortHeaderButtonStyle}"
+                                    Command="{Binding SortBySizeCommand}">
+                                <Grid>
+                                    <FontIcon Glyph="{Binding SizeSortIndicator}"
+                                              FontSize="8"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Top"
+                                              Margin="0,5,0,0"
+                                              Visibility="{Binding SizeSortVisibility}" />
+                                    <TextBlock Text="Ukuran"
+                                               FontWeight="SemiBold"
+                                               FontSize="12"
+                                               HorizontalAlignment="Left"
+                                               VerticalAlignment="Bottom"
+                                               Margin="12,0,8,6" />
+                                </Grid>
+                            </Button>
+                        </Border>
+
+                        <Border Grid.Column="3">
+                            <Button Style="{StaticResource SortHeaderButtonStyle}"
+                                    Command="{Binding SortByModifiedCommand}">
+                                <Grid>
+                                    <FontIcon Glyph="{Binding ModifiedSortIndicator}"
+                                              FontSize="8"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Top"
+                                              Margin="0,5,0,0"
+                                              Visibility="{Binding ModifiedSortVisibility}" />
+                                    <TextBlock Text="Diubah"
+                                               FontWeight="SemiBold"
+                                               FontSize="12"
+                                               HorizontalAlignment="Left"
+                                               VerticalAlignment="Bottom"
+                                               Margin="12,0,8,6" />
+                                </Grid>
+                            </Button>
+                        </Border>
+                    </Grid>
+                </ScrollViewer>
+
+                <ScrollViewer x:Name="BodyScrollViewer"
+                              Grid.Row="1"
+                              HorizontalScrollBarVisibility="Auto"
+                              VerticalScrollBarVisibility="Auto"
+                              ViewChanged="BodyScrollViewer_ViewChanged">
+                    <ListView x:Name="ExplorerList"
+                              MinWidth="720"
+                              ItemsSource="{Binding Items}"
+                              SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
+                              SelectionMode="Single"
+                              DoubleTapped="ExplorerList_DoubleTapped"
+                              ScrollViewer.VerticalScrollMode="Disabled"
+                              ScrollViewer.HorizontalScrollMode="Disabled">
+                        <ListView.ItemContainerStyle>
+                            <Style TargetType="ListViewItem">
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                <Setter Property="Padding" Value="0" />
+                            </Style>
+                        </ListView.ItemContainerStyle>
+                        <ListView.ItemTemplate>
+                            <DataTemplate x:DataType="vm:AttachmentItemViewModel">
+                                <Grid MinHeight="36" ColumnDefinitions="*,100,100,140">
+                                    <StackPanel Grid.Column="0"
+                                                Orientation="Horizontal"
+                                                Spacing="10"
+                                                Margin="12,0,8,0"
+                                                VerticalAlignment="Center">
+                                        <FontIcon Glyph="{x:Bind IconGlyph}"
+                                                  FontSize="14"
+                                                  Foreground="{x:Bind TypeLabel, Converter={StaticResource AttachmentTypeBrushConverter}}"
+                                                  Opacity="0.9" />
+                                        <TextBlock Text="{x:Bind Name}"
+                                                   VerticalAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{x:Bind TypeLabel}"
+                                               VerticalAlignment="Center"
+                                               Margin="12,0,8,0"
+                                               FontSize="12"
+                                               Foreground="{x:Bind TypeLabel, Converter={StaticResource AttachmentTypeBrushConverter}}" />
+                                    <TextBlock Grid.Column="2"
+                                               Text="{x:Bind SizeDisplay}"
+                                               VerticalAlignment="Center"
+                                               Margin="12,0,8,0"
+                                               FontSize="12"
+                                               Foreground="{ThemeResource TextFillColorSecondary}" />
+                                    <TextBlock Grid.Column="3"
+                                               Text="{x:Bind ModifiedDisplay}"
+                                               VerticalAlignment="Center"
+                                               Margin="12,0,8,0"
+                                               FontSize="12"
+                                               Foreground="{ThemeResource TextFillColorSecondary}" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                </ScrollViewer>
+
+                <StackPanel Grid.Row="1"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Spacing="6"
+                            IsHitTestVisible="False"
+                            Visibility="{Binding EmptyVisibility}">
+                    <FontIcon Glyph="&#xE8B7;" FontSize="24" Opacity="0.4" HorizontalAlignment="Center" />
+                    <TextBlock Text="{Binding EmptyTitle}"
+                               FontSize="12"
+                               Opacity="0.7"
+                               HorizontalAlignment="Center" />
+                </StackPanel>
+            </Grid>
         </Border>
-    </StackPanel>
+    </Grid>
 </Page>

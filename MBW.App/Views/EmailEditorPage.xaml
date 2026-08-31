@@ -668,7 +668,7 @@
                            Text="Available Variables"
                            FontSize="13"
                            FontWeight="SemiBold"
-                           Foreground="{ThemeResource TextFillColorPrimary}" />
+                               Foreground="{ThemeResource TextFillColorPrimary}" />
 
                 <TextBox Grid.Row="1"
                          Margin="0,8,0,8"
@@ -678,8 +678,8 @@
 
                 <ListView Grid.Row="2"
                           ItemsSource="{Binding FilteredVariables}"
-                          SelectionMode="None"
-                          Background="Transparent">
+                                  SelectionMode="None"
+                                  Background="Transparent">
                     <ListView.ItemContainerStyle>
                         <Style TargetType="ListViewItem">
                             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
@@ -687,14 +687,14 @@
                             <Setter Property="MinHeight" Value="36" />
                         </Style>
                     </ListView.ItemContainerStyle>
-                    <ListView.ItemTemplate>
-                        <DataTemplate x:DataType="x:String">
+                            <ListView.ItemTemplate>
+                                <DataTemplate x:DataType="x:String">
                             <Grid ColumnDefinitions="*,Auto"
                                   Padding="0,4"
                                   ColumnSpacing="4">
                                 <TextBlock Grid.Column="0"
                                            Text="{Binding}"
-                                           Foreground="{ThemeResource TextFillColorPrimary}"
+                                                   Foreground="{ThemeResource TextFillColorPrimary}" 
                                            VerticalAlignment="Center"
                                            TextTrimming="CharacterEllipsis"
                                            ToolTipService.ToolTip="{Binding}" />
@@ -703,14 +703,14 @@
                                         Width="28"
                                         Height="28"
                                         ToolTipService.ToolTip="Sisipkan variabel"
-                                        Click="OnInsertVariableFromListClick"
+                                                Click="OnInsertVariableFromListClick" 
                                         Tag="{Binding}">
                                     <FontIcon Glyph="&#xE710;" FontSize="14" />
                                 </Button>
-                            </Grid>
-                        </DataTemplate>
-                    </ListView.ItemTemplate>
-                </ListView>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
 
                 <TextBlock Grid.Row="3"
                            Text="Tidak ada variabel yang cocok."
@@ -722,12 +722,12 @@
 
                 <TextBlock Grid.Row="4"
                            Text="Belum ada variabel. Import file Excel di menu Database."
-                           Foreground="{ThemeResource TextFillColorSecondary}"
+                               Foreground="{ThemeResource TextFillColorSecondary}" 
                            FontSize="12"
                            FontStyle="Italic"
                            Margin="0,8,0,0"
                            TextWrapping="Wrap"
-                           Visibility="{Binding NoVariablesVisibility}" />
+                               Visibility="{Binding NoVariablesVisibility}" />
             </Grid>
         </Grid>
     </Grid>

@@ -144,6 +144,83 @@ namespace MBW.Core.Services
         public int GetDataHeaderRow() =>
             Current is null || Current.DataHeaderRow < 1 ? 1 : Current.DataHeaderRow;
 
+        public AttachmentConfiguration GetAttachmentConfiguration()
+        {
+            if (Current is null)
+            {
+                return AttachmentConfiguration.CreateDefault();
+            }
+
+            return Current.AttachmentConfiguration;
+        }
+
+        public void UpdateAttachmentConfiguration(AttachmentConfiguration configuration)
+        {
+            if (Current is null || configuration is null)
+            {
+                return;
+            }
+
+            Current.AttachmentConfiguration = configuration.Clone();
+            Current.ModifiedAt = DateTimeOffset.UtcNow;
+        }
+
+        public string GetSharedAttachmentsDirectory() =>
+            Path.Combine(WorkspacePath!, "attachments", "shared");
+
+        public string GetIndividualAttachmentsDirectory() =>
+            Path.Combine(WorkspacePath!, "attachments", "individual");
+
+        public string? ResolveWorkspacePath(string? relativeOrAbsolutePath)
+        {
+            if (string.IsNullOrWhiteSpace(relativeOrAbsolutePath))
+            {
+                return null;
+            }
+
+            var path = relativeOrAbsolutePath.Replace('/', Path.DirectorySeparatorChar);
+            if (Path.IsPathRooted(path))
+            {
+                return Directory.Exists(path) || File.Exists(path) ? path : null;
+            }
+
+            if (!HasWorkspace)
+            {
+                return null;
+            }
+
+            var resolved = Path.Combine(WorkspacePath!, path);
+            return Directory.Exists(resolved) || File.Exists(resolved) ? resolved : null;
+        }
+
+        public string ToRelativePath(string absolutePath)
+        {
+            if (!HasWorkspace || string.IsNullOrWhiteSpace(absolutePath))
+            {
+                return absolutePath;
+            }
+
+            var workspace = Path.GetFullPath(WorkspacePath!);
+            var full = Path.GetFullPath(absolutePath);
+            if (full.StartsWith(workspace, StringComparison.OrdinalIgnoreCase))
+            {
+                return Path.GetRelativePath(workspace, full).Replace('\\', '/');
+            }
+
+            return absolutePath;
+        }
+
+        public void EnsureAttachmentDirectories()
+        {
+            if (!HasWorkspace)
+            {
+                return;
+            }
+
+            Directory.CreateDirectory(GetSharedAttachmentsDirectory());
+            Directory.CreateDirectory(GetIndividualAttachmentsDirectory());
+        }
+
         private void SetSession(WorkspaceModel workspace, string path)
         {
             Current = workspace;
