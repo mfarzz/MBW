@@ -18,11 +18,9 @@ namespace MBW.App
     public sealed partial class MainWindow : Window
     {
         private readonly Dictionary<string, Button> _mainNavButtons = new();
-        private readonly Dictionary<string, Button> _configNavButtons = new();
         private readonly Dictionary<string, Border> _navRails = new();
         private readonly Dictionary<string, IconElement> _navIcons = new();
         private readonly ShellViewModel _shellViewModel;
-        private bool _isConfigurationOpen = true;
         private bool _isProjectOpen;
         private string _currentTag = "Welcome";
 
@@ -52,10 +50,7 @@ namespace MBW.App
             AddButtonIfExists(_mainNavButtons, "Email", "EmailNavButton");
             AddButtonIfExists(_mainNavButtons, "Database", "DatabaseNavButton");
             AddButtonIfExists(_mainNavButtons, "Attachments", "AttachmentsNavButton");
-
-            AddButtonIfExists(_configNavButtons, "Matching", "MatchingNavButton");
-            AddButtonIfExists(_configNavButtons, "Rename", "RenameNavButton");
-            AddButtonIfExists(_configNavButtons, "Sending", "SendingNavButton");
+            AddButtonIfExists(_mainNavButtons, "Configuration", "ConfigurationNavButton");
 
             AddRailIfExists("Email", "EmailNavRail");
             AddRailIfExists("Database", "DatabaseNavRail");
@@ -75,6 +70,11 @@ namespace MBW.App
             if (FindElement<SymbolIcon>("AttachmentsNavIcon") is SymbolIcon attachmentsIcon)
             {
                 _navIcons["Attachments"] = attachmentsIcon;
+            }
+
+            if (FindElement<SymbolIcon>("ConfigurationNavIcon") is SymbolIcon configurationIcon)
+            {
+                _navIcons["Configuration"] = configurationIcon;
             }
         }
 
@@ -124,20 +124,6 @@ namespace MBW.App
             {
                 NavigateToTag(tag);
             }
-        }
-
-        private void ConfigNavButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is Button button && button.Tag is string tag)
-            {
-                NavigateToTag(tag);
-            }
-        }
-
-        private void ConfigurationToggleButton_Click(object sender, RoutedEventArgs e)
-        {
-            _isConfigurationOpen = !_isConfigurationOpen;
-            RefreshShellState();
         }
 
         private void TopMenuButton_Click(object sender, RoutedEventArgs e)
@@ -388,17 +374,7 @@ namespace MBW.App
             await RunSmtpCommandAsync();
         }
 
-        private void NavigateFromWorkspaceMenu(string tag)
-        {
-            if (tag == "Configuration")
-            {
-                _isConfigurationOpen = true;
-                NavigateToTag("Matching");
-                return;
-            }
-
-            NavigateToTag(tag);
-        }
+        private void NavigateFromWorkspaceMenu(string tag) => NavigateToTag(tag);
 
         private async Task RunSmtpCommandAsync()
         {
@@ -428,15 +404,17 @@ namespace MBW.App
                 "Email" => typeof(EmailEditorPage),
                 "Database" => typeof(DatabasePage),
                 "Attachments" => typeof(AttachmentsPage),
-                "Matching" => typeof(ConfigurationPage),
-                "Rename" => typeof(ConfigurationPage),
-                "Sending" => typeof(ConfigurationPage),
+                "Configuration" => typeof(ConfigurationPage),
                 _ => typeof(EmailEditorPage)
             };
 
-            if (RootFrame.CurrentSourcePageType != pageType || tag is "Matching" or "Rename" or "Sending")
+            if (RootFrame.CurrentSourcePageType != pageType)
             {
-                RootFrame.Navigate(pageType, tag);
+                RootFrame.Navigate(pageType);
+            }
+            else if (tag == "Configuration" && RootFrame.Content is ConfigurationPage configurationPage)
+            {
+                _ = configurationPage.ReloadAsync();
             }
 
             _currentTag = tag;
@@ -449,30 +427,10 @@ namespace MBW.App
             {
                 return;
             }
-            if (FindElement<FrameworkElement>("ConfigurationItemsPanel") is FrameworkElement panel)
-            {
-                panel.Visibility = _isConfigurationOpen ? Visibility.Visible : Visibility.Collapsed;
-            }
-
-            if (FindElement<FontIcon>("ConfigurationChevron") is FontIcon chevron)
-            {
-                chevron.Glyph = _isConfigurationOpen ? "\uE70D" : "\uE76C";
-            }
 
             foreach (var pair in _mainNavButtons)
             {
                 ApplyMainNavVisual(pair.Key, pair.Value, pair.Key == _currentTag);
-            }
-
-            foreach (var pair in _configNavButtons)
-            {
-                ApplyConfigVisual(pair.Value, pair.Key == _currentTag);
-            }
-
-            var configActive = _currentTag is "Matching" or "Rename" or "Sending";
-            if (FindElement<Button>("ConfigurationToggleButton") is Button configToggle)
-            {
-                ApplyMainNavVisual("Configuration", configToggle, configActive);
             }
         }
 
@@ -493,17 +451,6 @@ namespace MBW.App
                     ? GetThemeBrush("AccentFillColorDefaultBrush")
                     : GetThemeBrush("TextFillColorSecondary");
             }
-        }
-
-        private static void ApplyConfigVisual(Button button, bool isActive)
-        {
-            button.Background = isActive
-                ? GetThemeBrush("AccentFillColorSecondaryBrush")
-                : TransparentBrush;
-
-            button.Foreground = isActive
-                ? GetThemeBrush("TextFillColorPrimary")
-                : GetThemeBrush("TextFillColorSecondary");
         }
 
         private static Brush GetThemeBrush(string key)

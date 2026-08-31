@@ -935,9 +935,11 @@ namespace MBW.App.ViewModels
                 _suppressWorkspaceReload = true;
                 _suppressSave = true;
 
+                var existing = _workspaceCoordinator.GetAttachmentConfiguration();
                 _workspaceCoordinator.UpdateAttachmentConfiguration(new AttachmentConfiguration
                 {
-                    Enabled = IsEnabled
+                    Enabled = IsEnabled,
+                    Link = existing.Link.Clone()
                 });
                 await _workspaceCoordinator.SaveCurrentAsync();
             }

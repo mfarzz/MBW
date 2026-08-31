@@ -162,7 +162,7 @@
                         </Button>
 
                         <!-- Configuration -->
-                        <Button x:Name="ConfigurationToggleButton" Click="ConfigurationToggleButton_Click" Style="{StaticResource SubtleButtonStyle}" Height="32" HorizontalContentAlignment="Stretch" HorizontalAlignment="Stretch" Padding="0" CornerRadius="0">
+                        <Button x:Name="ConfigurationNavButton" Tag="Configuration" Click="NavButton_Click" Style="{StaticResource SubtleButtonStyle}" Height="32" HorizontalContentAlignment="Stretch" HorizontalAlignment="Stretch" Padding="0" CornerRadius="0">
                             <Grid HorizontalAlignment="Stretch">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="3" />
@@ -173,22 +173,14 @@
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto" />
                                         <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
                                     <Viewbox Grid.Column="0" Width="{StaticResource ShellNavIconSize}" Height="{StaticResource ShellNavIconSize}">
-                                        <SymbolIcon Symbol="Setting" Foreground="{ThemeResource TextFillColorSecondary}" />
+                                        <SymbolIcon x:Name="ConfigurationNavIcon" Symbol="Setting" Foreground="{ThemeResource TextFillColorSecondary}" />
                                     </Viewbox>
-                                    <TextBlock Grid.Column="1" Text="Configuration" FontSize="13" FontWeight="Medium" Margin="10,0,0,0" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorPrimary}" />
-                                    <FontIcon x:Name="ConfigurationChevron" Grid.Column="2" Glyph="&#xE70D;" Foreground="{ThemeResource TextFillColorSecondary}" FontSize="10" />
+                                    <TextBlock Grid.Column="1" Text="Configuration" FontSize="13" Margin="10,0,0,0" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorPrimary}" />
                                 </Grid>
                             </Grid>
                         </Button>
-
-                        <StackPanel x:Name="ConfigurationItemsPanel" Margin="28,0,0,0" Spacing="1">
-                            <Button x:Name="MatchingNavButton" Tag="Matching" Click="ConfigNavButton_Click" Style="{StaticResource SubtleButtonStyle}" Height="28" HorizontalContentAlignment="Left" HorizontalAlignment="Stretch" Padding="16,0,10,0" CornerRadius="0" Content="Matching" FontSize="13" Foreground="{ThemeResource TextFillColorSecondary}" />
-                            <Button x:Name="RenameNavButton" Tag="Rename" Click="ConfigNavButton_Click" Style="{StaticResource SubtleButtonStyle}" Height="28" HorizontalContentAlignment="Left" HorizontalAlignment="Stretch" Padding="16,0,10,0" CornerRadius="0" Content="Rename" FontSize="13" Foreground="{ThemeResource TextFillColorSecondary}" />
-                            <Button x:Name="SendingNavButton" Tag="Sending" Click="ConfigNavButton_Click" Style="{StaticResource SubtleButtonStyle}" Height="28" HorizontalContentAlignment="Left" HorizontalAlignment="Stretch" Padding="16,0,10,0" CornerRadius="0" Content="Sending" FontSize="13" Foreground="{ThemeResource TextFillColorSecondary}" />
-                        </StackPanel>
                     </StackPanel>
                 </ScrollViewer>
             </Grid>

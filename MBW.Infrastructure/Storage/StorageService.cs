@@ -210,14 +210,53 @@ namespace MBW.Infrastructure.Storage
         {
             public bool Enabled { get; set; }
 
+            public AttachmentLinkConfigurationDto? Link { get; set; }
+
             public static AttachmentConfigurationDto FromModel(AttachmentConfiguration model) => new()
             {
-                Enabled = model.Enabled
+                Enabled = model.Enabled,
+                Link = model.Link != null ? AttachmentLinkConfigurationDto.FromModel(model.Link) : null
             };
 
             public AttachmentConfiguration ToModel() => new()
             {
-                Enabled = Enabled
+                Enabled = Enabled,
+                Link = Link?.ToModel() ?? AttachmentLinkConfiguration.CreateDefault()
+            };
+        }
+
+        private class AttachmentLinkConfigurationDto
+        {
+            public string IndividualFolderName { get; set; } = string.Empty;
+
+            public string KeyColumn { get; set; } = string.Empty;
+
+            public string FilePattern { get; set; } = string.Empty;
+
+            public int? LastMatchedCount { get; set; }
+
+            public int? LastMissingCount { get; set; }
+
+            public DateTimeOffset? LastValidatedAt { get; set; }
+
+            public static AttachmentLinkConfigurationDto FromModel(AttachmentLinkConfiguration model) => new()
+            {
+                IndividualFolderName = model.IndividualFolderName,
+                KeyColumn = model.KeyColumn,
+                FilePattern = model.FilePattern,
+                LastMatchedCount = model.LastMatchedCount,
+                LastMissingCount = model.LastMissingCount,
+                LastValidatedAt = model.LastValidatedAt
+            };
+
+            public AttachmentLinkConfiguration ToModel() => new()
+            {
+                IndividualFolderName = IndividualFolderName,
+                KeyColumn = KeyColumn,
+                FilePattern = FilePattern,
+                LastMatchedCount = LastMatchedCount,
+                LastMissingCount = LastMissingCount,
+                LastValidatedAt = LastValidatedAt
             };
         }
     }

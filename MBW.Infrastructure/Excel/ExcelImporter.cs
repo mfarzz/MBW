@@ -210,7 +210,15 @@ namespace MBW.Infrastructure.Excel
             var rows = new List<RecipientRow>();
             var lastRow = worksheet.LastRowUsed()?.RowNumber() ?? headerRow;
             var startRow = headerRow + 1 + skip;
-            var endRow = Math.Min(lastRow, startRow + take - 1);
+
+            if (startRow > lastRow)
+            {
+                return rows;
+            }
+
+            var endRow = (long)startRow + take - 1 >= lastRow
+                ? lastRow
+                : (int)((long)startRow + take - 1);
 
             for (var rowNumber = startRow; rowNumber <= endRow; rowNumber++)
             {

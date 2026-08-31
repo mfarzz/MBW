@@ -79,6 +79,75 @@ namespace MBW.Infrastructure.Attachments
             }, cancellationToken);
         }
 
+        public Task<IReadOnlyList<AttachmentMatch>> MatchByKeyColumnAsync(
+            string folderPath,
+            IEnumerable<RecipientRow> recipients,
+            string keyColumn,
+            CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(folderPath))
+            {
+                throw new ArgumentException("Folder path cannot be empty", nameof(folderPath));
+            }
+
+            if (string.IsNullOrWhiteSpace(keyColumn))
+            {
+                throw new ArgumentException("Key column cannot be empty", nameof(keyColumn));
+            }
+
+            return Task.Run(() =>
+            {
+                var files = Directory.Exists(folderPath)
+                    ? Directory.EnumerateFiles(folderPath, "*.*", SearchOption.TopDirectoryOnly)
+                        .Where(path => AllowedExtensions.Contains(Path.GetExtension(path)))
+                        .Select(Path.GetFileName)
+                        .Where(name => !string.IsNullOrWhiteSpace(name))
+                        .Cast<string>()
+                        .ToList()
+                    : new List<string>();
+
+                var fileByStem = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                var fileByFullName = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+                foreach (var fileName in files)
+                {
+                    fileByFullName.TryAdd(fileName, fileName);
+
+                    var stem = Path.GetFileNameWithoutExtension(fileName);
+                    if (!string.IsNullOrWhiteSpace(stem))
+                    {
+                        fileByStem.TryAdd(stem, fileName);
+                    }
+                }
+
+                var matches = new List<AttachmentMatch>();
+                foreach (var recipient in recipients)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    var keyValue = recipient.Get(keyColumn)?.Trim() ?? string.Empty;
+                    string? matchedFile = null;
+
+                    if (!string.IsNullOrWhiteSpace(keyValue))
+                    {
+                        if (fileByStem.TryGetValue(keyValue, out var byStem))
+                        {
+                            matchedFile = byStem;
+                        }
+                        else if (fileByFullName.TryGetValue(keyValue, out var byFullName))
+                        {
+                            matchedFile = byFullName;
+                        }
+                    }
+
+                    var expectedName = matchedFile ?? keyValue;
+                    matches.Add(new AttachmentMatch(expectedName, matchedFile is not null, recipient.RowNumber.ToString()));
+                }
+
+                return (IReadOnlyList<AttachmentMatch>)matches.AsReadOnly();
+            }, cancellationToken);
+        }
+
         public Task<string> CopyFileAsync(string sourcePath, string destinationPath, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(sourcePath))

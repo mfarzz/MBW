@@ -17,6 +17,12 @@ namespace MBW.Core.Interfaces
             string pattern,
             CancellationToken cancellationToken = default);
 
+        Task<IReadOnlyList<AttachmentMatch>> MatchByKeyColumnAsync(
+            string folderPath,
+            IEnumerable<RecipientRow> recipients,
+            string keyColumn,
+            CancellationToken cancellationToken = default);
+
         Task<string> CopyFileAsync(string sourcePath, string destinationPath, CancellationToken cancellationToken = default);
 
         Task<int> ImportFolderAsync(string sourceFolder, string destinationFolder, CancellationToken cancellationToken = default);

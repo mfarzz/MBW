@@ -69,6 +69,18 @@ namespace MBW.App.Composition
             _isInitialized = true;
         }
 
+        private static ConfigurationViewModel? _configurationViewModel;
+
+        public static ConfigurationViewModel GetConfigurationViewModel()
+        {
+            return _configurationViewModel ??= new ConfigurationViewModel(
+                WorkspaceCoordinator,
+                AttachmentService,
+                ExcelImporter);
+        }
+
+        public static ConfigurationViewModel CreateConfigurationViewModel() => GetConfigurationViewModel();
+
         public static DatabaseViewModel GetDatabaseViewModel()
         {
             return _databaseViewModel ??= new DatabaseViewModel(ExcelImporter, WorkspaceCoordinator);

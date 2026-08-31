@@ -7,8 +7,14 @@ namespace MBW.Core.Models
 
         public bool Enabled { get; set; }
 
+        public AttachmentLinkConfiguration Link { get; set; } = AttachmentLinkConfiguration.CreateDefault();
+
         public static AttachmentConfiguration CreateDefault() => new();
 
-        public AttachmentConfiguration Clone() => new() { Enabled = Enabled };
+        public AttachmentConfiguration Clone() => new()
+        {
+            Enabled = Enabled,
+            Link = Link?.Clone() ?? AttachmentLinkConfiguration.CreateDefault()
+        };
     }
 }
