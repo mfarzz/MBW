@@ -17,11 +17,12 @@
             <FlyoutBase.AttachedFlyout>
                 <Flyout x:Name="OptionsFlyout"
                         Opening="OptionsFlyout_Opening"
-                        Placement="Bottom">
+                        Placement="Bottom"
+                        ShouldConstrainToRootBounds="False">
                     <StackPanel x:Name="FlyoutContentPanel" Spacing="8">
                         <TextBox x:Name="SearchBox"
                                  HorizontalAlignment="Stretch"
-                                 PlaceholderText="Cari..."
+                                 PlaceholderText="Search..."
                                  TextChanged="SearchBox_TextChanged" />
                         <ListView x:Name="ItemsList"
                                   HorizontalAlignment="Stretch"

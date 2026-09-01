@@ -50,7 +50,6 @@ namespace MBW.App.ViewModels
             {
                 OnPropertyChanged(nameof(HasWorkspace));
                 OnPropertyChanged(nameof(NoWorkspaceVisibility));
-                OnPropertyChanged(nameof(ToggleVisibility));
                 OnPropertyChanged(nameof(ContentVisibility));
 
                 var path = _workspaceCoordinator.WorkspacePath;
@@ -81,9 +80,6 @@ namespace MBW.App.ViewModels
         private AttachmentClipboardEntry? _clipboard;
 
         [ObservableProperty]
-        public partial bool IsEnabled { get; set; }
-
-        [ObservableProperty]
         public partial bool IsBusy { get; set; }
 
         [ObservableProperty]
@@ -108,8 +104,8 @@ namespace MBW.App.ViewModels
         public string ImportButtonLabel => IsInsideFolder ? "Import file" : "Import folder";
 
         public string SearchPlaceholder => IsInsideFolder
-            ? "Cari file di folder ini"
-            : "Cari folder";
+            ? "Search files in this folder"
+            : "Search folders";
 
         public bool CanCutItem => SelectedItem?.IsDeletable == true;
 
@@ -125,10 +121,8 @@ namespace MBW.App.ViewModels
 
         public Visibility NoWorkspaceVisibility => HasWorkspace ? Visibility.Collapsed : Visibility.Visible;
 
-        public Visibility ToggleVisibility => HasWorkspace ? Visibility.Visible : Visibility.Collapsed;
-
         public Visibility ContentVisibility =>
-            HasWorkspace && IsEnabled ? Visibility.Visible : Visibility.Collapsed;
+            HasWorkspace ? Visibility.Visible : Visibility.Collapsed;
 
         public Visibility CreateFolderVisibility =>
             _location == AttachmentExplorerLocation.Root ? Visibility.Visible : Visibility.Collapsed;
@@ -138,9 +132,9 @@ namespace MBW.App.ViewModels
 
         public string EmptyTitle => _location switch
         {
-            AttachmentExplorerLocation.Shared => "Belum ada file di folder shared",
-            AttachmentExplorerLocation.IndividualFolder => "Belum ada file di folder ini",
-            _ => string.IsNullOrWhiteSpace(SearchQuery) ? "Belum ada folder individual" : "Tidak ada hasil pencarian"
+            AttachmentExplorerLocation.Shared => "No files in the shared folder yet",
+            AttachmentExplorerLocation.IndividualFolder => "No files in this folder yet",
+            _ => string.IsNullOrWhiteSpace(SearchQuery) ? "No individual folders yet" : "No search results"
         };
 
         public string NameSortIndicator => GetSortIndicator(AttachmentSortColumn.Name);
@@ -158,15 +152,6 @@ namespace MBW.App.ViewModels
         public Visibility SizeSortVisibility => GetSortVisibility(AttachmentSortColumn.Size);
 
         public Visibility ModifiedSortVisibility => GetSortVisibility(AttachmentSortColumn.Modified);
-
-        partial void OnIsEnabledChanged(bool value)
-        {
-            OnPropertyChanged(nameof(ContentVisibility));
-            if (!_suppressSave)
-            {
-                ScheduleSave();
-            }
-        }
 
         partial void OnSearchQueryChanged(string value) => ApplyFilterAndSort();
 
@@ -195,13 +180,10 @@ namespace MBW.App.ViewModels
 
             if (!_workspaceCoordinator.HasWorkspace)
             {
-                _suppressSave = true;
-                IsEnabled = false;
                 ResetNavigation(clearHistory: true);
                 _allItems.Clear();
                 Items.Clear();
-                StatusMessage = "Buat atau buka workspace terlebih dahulu.";
-                _suppressSave = false;
+                StatusMessage = "Create or open a workspace first.";
                 _isInitialized = true;
                 _loadedWorkspacePath = null;
                 NotifyExplorerState();
@@ -215,20 +197,15 @@ namespace MBW.App.ViewModels
                 _suppressSave = true;
                 _workspaceCoordinator.EnsureAttachmentDirectories();
 
-                var config = _workspaceCoordinator.GetAttachmentConfiguration();
-                IsEnabled = config.Enabled;
-
                 ResetNavigation(clearHistory: true);
                 await LoadItemsFromDiskAsync();
-                StatusMessage = IsEnabled
-                    ? "Kelola folder dan file lampiran di workspace."
-                    : "Lampiran email nonaktif.";
+                StatusMessage = "Manage attachment folders and files in the workspace.";
                 _isInitialized = true;
                 _loadedWorkspacePath = _workspaceCoordinator.WorkspacePath;
             }
             catch (Exception ex)
             {
-                StatusMessage = $"Gagal memuat lampiran: {ex.Message}";
+                StatusMessage = $"Failed to load attachments: {ex.Message}";
             }
             finally
             {
@@ -392,11 +369,11 @@ namespace MBW.App.ViewModels
             {
                 IsBusy = true;
                 await LoadItemsFromDiskAsync();
-                StatusMessage = "Daftar lampiran diperbarui.";
+                StatusMessage = "Attachment list refreshed.";
             }
             catch (Exception ex)
             {
-                StatusMessage = $"Gagal memuat ulang: {ex.Message}";
+                StatusMessage = $"Failed to refresh: {ex.Message}";
             }
             finally
             {
@@ -423,20 +400,20 @@ namespace MBW.App.ViewModels
             folderName = SanitizeFolderName(folderName.Trim());
             if (string.IsNullOrWhiteSpace(folderName))
             {
-                StatusMessage = "Nama folder tidak valid.";
+                StatusMessage = "Invalid folder name.";
                 return;
             }
 
             if (string.Equals(folderName, "shared", StringComparison.OrdinalIgnoreCase))
             {
-                StatusMessage = "Nama \"shared\" sudah dipakai untuk folder sistem.";
+                StatusMessage = "The name \"shared\" is reserved for the system folder.";
                 return;
             }
 
             var destination = Path.Combine(_workspaceCoordinator.GetIndividualAttachmentsDirectory(), folderName);
             if (Directory.Exists(destination))
             {
-                StatusMessage = $"Folder \"{folderName}\" sudah ada.";
+                StatusMessage = $"Folder \"{folderName}\" already exists.";
                 return;
             }
 
@@ -445,11 +422,11 @@ namespace MBW.App.ViewModels
                 IsBusy = true;
                 await _attachmentService.CreateFolderAsync(destination);
                 await LoadItemsFromDiskAsync();
-                StatusMessage = $"Folder individual \"{folderName}\" dibuat.";
+                StatusMessage = $"Individual folder \"{folderName}\" created.";
             }
             catch (Exception ex)
             {
-                StatusMessage = $"Gagal membuat folder: {ex.Message}";
+                StatusMessage = $"Failed to create folder: {ex.Message}";
             }
             finally
             {
@@ -492,7 +469,7 @@ namespace MBW.App.ViewModels
             if (ConfirmImportFolderAsync is not null
                 && !await ConfirmImportFolderAsync(sourceName))
             {
-                StatusMessage = "Import folder dibatalkan.";
+                StatusMessage = "Folder import cancelled.";
                 return;
             }
 
@@ -503,11 +480,11 @@ namespace MBW.App.ViewModels
                 await _attachmentService.CreateFolderAsync(destination);
                 var count = await _attachmentService.ImportFolderAsync(picked, destination);
                 await LoadItemsFromDiskAsync();
-                StatusMessage = $"Folder individual \"{sourceName}\" dibuat dengan {count:N0} file.";
+                StatusMessage = $"Individual folder \"{sourceName}\" created with {count:N0} file(s).";
             }
             catch (Exception ex)
             {
-                StatusMessage = $"Gagal import folder: {ex.Message}";
+                StatusMessage = $"Failed to import folder: {ex.Message}";
             }
             finally
             {
@@ -541,11 +518,11 @@ namespace MBW.App.ViewModels
                 }
 
                 await LoadItemsFromDiskAsync();
-                StatusMessage = $"{count:N0} file diimpor.";
+                StatusMessage = $"{count:N0} file(s) imported.";
             }
             catch (Exception ex)
             {
-                StatusMessage = $"Gagal import file: {ex.Message}";
+                StatusMessage = $"Failed to import file(s): {ex.Message}";
             }
             finally
             {
@@ -663,19 +640,19 @@ namespace MBW.App.ViewModels
         {
             if (SelectedItem is null)
             {
-                StatusMessage = "Pilih item yang akan dihapus.";
+                StatusMessage = "Select an item to delete.";
                 return;
             }
 
             if (!SelectedItem.IsDeletable)
             {
-                StatusMessage = "Folder shared tidak dapat dihapus.";
+                StatusMessage = "The shared folder cannot be deleted.";
                 return;
             }
 
             if (ConfirmDeleteAsync is not null && !await ConfirmDeleteAsync(SelectedItem.DisplayName))
             {
-                StatusMessage = "Penghapusan dibatalkan.";
+                StatusMessage = "Delete cancelled.";
                 return;
             }
 
@@ -685,11 +662,11 @@ namespace MBW.App.ViewModels
                 await _attachmentService.DeletePathAsync(SelectedItem.FullPath);
                 SelectedItem = null;
                 await LoadItemsFromDiskAsync();
-                StatusMessage = "Item dihapus.";
+                StatusMessage = "Item deleted.";
             }
             catch (Exception ex)
             {
-                StatusMessage = $"Gagal menghapus: {ex.Message}";
+                StatusMessage = $"Failed to delete: {ex.Message}";
             }
             finally
             {
@@ -710,7 +687,7 @@ namespace MBW.App.ViewModels
                 SelectedItem.Name,
                 SelectedItem.IsFolder,
                 isCut: true);
-            StatusMessage = $"\"{SelectedItem.DisplayName}\" siap dipindahkan.";
+            StatusMessage = $"\"{SelectedItem.DisplayName}\" ready to move.";
             NotifyClipboardState();
         }
 
@@ -727,7 +704,7 @@ namespace MBW.App.ViewModels
                 SelectedItem.Name,
                 SelectedItem.IsFolder,
                 isCut: false);
-            StatusMessage = $"\"{SelectedItem.DisplayName}\" disalin ke clipboard.";
+            StatusMessage = $"\"{SelectedItem.DisplayName}\" copied to clipboard.";
             NotifyClipboardState();
         }
 
@@ -742,7 +719,7 @@ namespace MBW.App.ViewModels
             var destinationFolder = GetPasteDestinationFolder();
             if (string.IsNullOrWhiteSpace(destinationFolder))
             {
-                StatusMessage = "Tidak dapat menempel di lokasi ini.";
+                StatusMessage = "Cannot paste in this location.";
                 return;
             }
 
@@ -764,12 +741,12 @@ namespace MBW.App.ViewModels
 
                 await LoadItemsFromDiskAsync();
                 StatusMessage = isCut
-                    ? $"\"{itemName}\" dipindahkan."
-                    : $"\"{itemName}\" ditempel.";
+                    ? $"\"{itemName}\" moved."
+                    : $"\"{itemName}\" pasted.";
             }
             catch (Exception ex)
             {
-                StatusMessage = $"Gagal menempel: {ex.Message}";
+                StatusMessage = $"Failed to paste: {ex.Message}";
             }
             finally
             {
@@ -808,11 +785,11 @@ namespace MBW.App.ViewModels
                 await _attachmentService.RenameEntryAsync(SelectedItem.FullPath, newName);
                 SelectedItem = null;
                 await LoadItemsFromDiskAsync();
-                StatusMessage = "Item diganti nama.";
+                StatusMessage = "Item renamed.";
             }
             catch (Exception ex)
             {
-                StatusMessage = $"Gagal mengganti nama: {ex.Message}";
+                StatusMessage = $"Failed to rename: {ex.Message}";
             }
             finally
             {
@@ -938,14 +915,14 @@ namespace MBW.App.ViewModels
                 var existing = _workspaceCoordinator.GetAttachmentConfiguration();
                 _workspaceCoordinator.UpdateAttachmentConfiguration(new AttachmentConfiguration
                 {
-                    Enabled = IsEnabled,
+                    Enabled = true,
                     Link = existing.Link.Clone()
                 });
                 await _workspaceCoordinator.SaveCurrentAsync();
             }
             catch (Exception ex)
             {
-                StatusMessage = $"Gagal menyimpan: {ex.Message}";
+                StatusMessage = $"Failed to save: {ex.Message}";
             }
             finally
             {

@@ -255,16 +255,16 @@ namespace MBW.App.Views
         {
             var textBox = new TextBox
             {
-                PlaceholderText = "Nama folder individual",
+                PlaceholderText = "Individual folder name",
                 SelectionStart = 0
             };
 
             var dialog = new ContentDialog
             {
-                Title = "Folder baru",
+                Title = "New folder",
                 Content = textBox,
-                PrimaryButtonText = "Buat",
-                CloseButtonText = "Batal",
+                PrimaryButtonText = "Create",
+                CloseButtonText = "Cancel",
                 DefaultButton = ContentDialogButton.Primary,
                 XamlRoot = XamlRoot
             };
@@ -282,17 +282,17 @@ namespace MBW.App.Views
             var textBox = new TextBox
             {
                 Text = editableName,
-                PlaceholderText = $"Nama {itemKind}",
+                PlaceholderText = $"{itemKind} name",
                 SelectionStart = 0,
                 SelectionLength = editableName.Length
             };
 
             var dialog = new ContentDialog
             {
-                Title = "Ganti nama",
+                Title = "Rename",
                 Content = textBox,
-                PrimaryButtonText = "Simpan",
-                CloseButtonText = "Batal",
+                PrimaryButtonText = "Save",
+                CloseButtonText = "Cancel",
                 DefaultButton = ContentDialogButton.Primary,
                 XamlRoot = XamlRoot
             };
@@ -322,9 +322,9 @@ namespace MBW.App.Views
             var dialog = new ContentDialog
             {
                 Title = "Import folder?",
-                Content = $"Salin semua file dari \"{folderName}\" ke workspace? File dengan nama sama akan ditimpa.",
+                Content = $"Copy all files from \"{folderName}\" into the workspace? Files with the same name will be overwritten.",
                 PrimaryButtonText = "Import",
-                CloseButtonText = "Batal",
+                CloseButtonText = "Cancel",
                 DefaultButton = ContentDialogButton.Primary,
                 XamlRoot = XamlRoot
             };
@@ -337,10 +337,10 @@ namespace MBW.App.Views
         {
             var dialog = new ContentDialog
             {
-                Title = "Hapus item?",
-                Content = $"Hapus \"{itemName}\" dari workspace? Tindakan ini tidak dapat dibatalkan.",
-                PrimaryButtonText = "Hapus",
-                CloseButtonText = "Batal",
+                Title = "Delete item?",
+                Content = $"Delete \"{itemName}\" from the workspace? This action cannot be undone.",
+                PrimaryButtonText = "Delete",
+                CloseButtonText = "Cancel",
                 DefaultButton = ContentDialogButton.Close,
                 XamlRoot = XamlRoot
             };

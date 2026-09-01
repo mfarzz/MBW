@@ -613,28 +613,21 @@
 
                     <Rectangle Width="1" Fill="{ThemeResource DividerStrokeColorDefault}" Margin="4,4,4,4" VerticalAlignment="Stretch" />
 
-                    <!-- Send (Preview + Continue) -->
+                    <!-- Send -->
                     <Grid Margin="6,0,8,0" RowDefinitions="Auto,*,Auto" Height="{StaticResource RibbonGroupHeight}">
                         <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="2" VerticalAlignment="Top">
-                            <Button Style="{StaticResource RibbonLargeButtonStyle}"
-                                    ToolTipService.ToolTip="Preview email with sample data"
-                                    Command="{Binding PreviewCommand}">
-                                <StackPanel Spacing="2" HorizontalAlignment="Center">
-                                    <FontIcon Glyph="&#xE8FF;" FontSize="20" HorizontalAlignment="Center" />
-                                    <TextBlock Text="Preview" FontSize="10" HorizontalAlignment="Center" />
-                                </StackPanel>
-                            </Button>
                             <Button Style="{StaticResource RibbonAccentLargeButtonStyle}"
-                                    ToolTipService.ToolTip="Continue to Sending"
-                                    Command="{Binding ContinueCommand}">
+                                    ToolTipService.ToolTip="Configure and preview before sending email"
+                                    Command="{Binding SendCommand}"
+                                    IsEnabled="{Binding CanSend}">
                                 <StackPanel Spacing="2" HorizontalAlignment="Center">
                                     <FontIcon Glyph="&#xE724;" FontSize="20" HorizontalAlignment="Center" Foreground="{ThemeResource AccentFillColorDefaultBrush}" />
                                     <TextBlock Text="Send" FontSize="10" HorizontalAlignment="Center" Foreground="{ThemeResource AccentFillColorDefaultBrush}" FontWeight="SemiBold" />
                                 </StackPanel>
-                        </Button>
-                    </StackPanel>
+                            </Button>
+                        </StackPanel>
                         <TextBlock Grid.Row="2" Text="Send" Style="{StaticResource RibbonGroupLabelStyle}" Height="{StaticResource RibbonGroupLabelHeight}" />
-                </Grid>
+                    </Grid>
 
                 </StackPanel>
             </ScrollViewer>
@@ -672,7 +665,7 @@
 
                 <TextBox Grid.Row="1"
                          Margin="0,8,0,8"
-                         PlaceholderText="Cari variabel..."
+                         PlaceholderText="Search variables..."
                          Text="{Binding VariableSearchQuery, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                          Visibility="{Binding VariablesPanelVisibility}" />
 
@@ -702,7 +695,7 @@
                                         Style="{StaticResource RibbonIconButtonStyle}"
                                         Width="28"
                                         Height="28"
-                                        ToolTipService.ToolTip="Sisipkan variabel"
+                                        ToolTipService.ToolTip="Insert variable"
                                                 Click="OnInsertVariableFromListClick" 
                                         Tag="{Binding}">
                                     <FontIcon Glyph="&#xE710;" FontSize="14" />
@@ -713,7 +706,7 @@
                         </ListView>
 
                 <TextBlock Grid.Row="3"
-                           Text="Tidak ada variabel yang cocok."
+                           Text="No matching variables."
                            Foreground="{ThemeResource TextFillColorSecondary}"
                            FontSize="12"
                            FontStyle="Italic"
@@ -721,7 +714,7 @@
                            Visibility="{Binding NoSearchResultsVisibility}" />
 
                 <TextBlock Grid.Row="4"
-                           Text="Belum ada variabel. Import file Excel di menu Database."
+                           Text="No variables yet. Import an Excel file from the Database panel."
                                Foreground="{ThemeResource TextFillColorSecondary}" 
                            FontSize="12"
                            FontStyle="Italic"

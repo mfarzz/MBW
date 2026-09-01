@@ -51,7 +51,7 @@ namespace MBW.App.ViewModels
         public partial int SelectedHeaderRow { get; set; } = 1;
 
         [ObservableProperty]
-        public partial string StatusMessage { get; set; } = "Memuat sheet...";
+        public partial string StatusMessage { get; set; } = "Loading sheets...";
 
         [ObservableProperty]
         public partial string SummaryText { get; set; } = string.Empty;
@@ -85,7 +85,7 @@ namespace MBW.App.ViewModels
             try
             {
                 IsBusy = true;
-                StatusMessage = "Memuat daftar sheet...";
+                StatusMessage = "Loading sheet list...";
                 CanConfirm = false;
 
                 SheetNames.Clear();
@@ -97,7 +97,7 @@ namespace MBW.App.ViewModels
 
                 if (SheetNames.Count == 0)
                 {
-                    StatusMessage = "File Excel tidak memiliki sheet.";
+                    StatusMessage = "The Excel file has no sheets.";
                     return;
                 }
 
@@ -107,7 +107,7 @@ namespace MBW.App.ViewModels
             }
             catch (Exception ex)
             {
-                StatusMessage = $"Gagal membaca Excel: {ex.Message}";
+                StatusMessage = $"Failed to read Excel: {ex.Message}";
                 CanConfirm = false;
             }
             finally
@@ -141,7 +141,7 @@ namespace MBW.App.ViewModels
             try
             {
                 IsBusy = true;
-                StatusMessage = $"Memuat preview \"{SelectedSheetName}\"...";
+                StatusMessage = $"Loading preview for \"{SelectedSheetName}\"...";
 
                 var preview = await _excelImporter.PreviewSheetAsync(
                     _sourcePath,
@@ -169,13 +169,13 @@ namespace MBW.App.ViewModels
                 }
 
                 SummaryText = preview.Headers.Count == 0
-                    ? "Tidak ada header pada baris yang dipilih."
-                    : $"{preview.TotalRows:N0} baris data · {preview.Headers.Count} kolom";
+                    ? "No headers found on the selected row."
+                    : $"{preview.TotalRows:N0} data rows · {preview.Headers.Count} columns";
 
                 CanConfirm = preview.Headers.Count > 0;
                 StatusMessage = CanConfirm
                     ? $"Sheet \"{preview.SheetName}\" siap digunakan."
-                    : "Pilih baris header yang berisi nama kolom.";
+                    : "Select a header row that contains column names.";
                 PreviewChanged?.Invoke(this, EventArgs.Empty);
             }
             catch (Exception ex)
@@ -184,7 +184,7 @@ namespace MBW.App.ViewModels
                 PreviewRows.Clear();
                 SummaryText = string.Empty;
                 CanConfirm = false;
-                StatusMessage = $"Preview gagal: {ex.Message}";
+                StatusMessage = $"Preview failed: {ex.Message}";
                 PreviewChanged?.Invoke(this, EventArgs.Empty);
             }
             finally

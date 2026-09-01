@@ -51,11 +51,13 @@ namespace MBW.App
             AddButtonIfExists(_mainNavButtons, "Database", "DatabaseNavButton");
             AddButtonIfExists(_mainNavButtons, "Attachments", "AttachmentsNavButton");
             AddButtonIfExists(_mainNavButtons, "Configuration", "ConfigurationNavButton");
+            AddButtonIfExists(_mainNavButtons, "Send", "SendNavButton");
 
             AddRailIfExists("Email", "EmailNavRail");
             AddRailIfExists("Database", "DatabaseNavRail");
             AddRailIfExists("Attachments", "AttachmentsNavRail");
             AddRailIfExists("Configuration", "ConfigurationNavRail");
+            AddRailIfExists("Send", "SendNavRail");
 
             if (FindElement<SymbolIcon>("EmailNavIcon") is SymbolIcon emailIcon)
             {
@@ -75,6 +77,11 @@ namespace MBW.App
             if (FindElement<SymbolIcon>("ConfigurationNavIcon") is SymbolIcon configurationIcon)
             {
                 _navIcons["Configuration"] = configurationIcon;
+            }
+
+            if (FindElement<SymbolIcon>("SendNavIcon") is SymbolIcon sendIcon)
+            {
+                _navIcons["Send"] = sendIcon;
             }
         }
 
@@ -122,6 +129,12 @@ namespace MBW.App
         {
             if (sender is Button button && button.Tag is string tag)
             {
+                if (tag == "Send")
+                {
+                    _ = OpenSendPageAsync();
+                    return;
+                }
+
                 NavigateToTag(tag);
             }
         }
@@ -369,6 +382,12 @@ namespace MBW.App
             NavigateFromWorkspaceMenu("Configuration");
         }
 
+        private async void WorkspaceSend_Click(object sender, RoutedEventArgs e)
+        {
+            CloseWorkspaceMenuFlyout();
+            await OpenSendPageAsync();
+        }
+
         private async void WorkspaceSmtp_Click(object sender, RoutedEventArgs e)
         {
             await RunSmtpCommandAsync();
@@ -391,6 +410,12 @@ namespace MBW.App
             }
         }
 
+        public async Task OpenSendPageAsync()
+        {
+            await SyncEmailEditorToCoordinator();
+            NavigateToTag("Send");
+        }
+
         private void NavigateToTag(string tag)
         {
             if (!_isProjectOpen && tag != "Welcome")
@@ -405,6 +430,7 @@ namespace MBW.App
                 "Database" => typeof(DatabasePage),
                 "Attachments" => typeof(AttachmentsPage),
                 "Configuration" => typeof(ConfigurationPage),
+                "Send" => typeof(SendPage),
                 _ => typeof(EmailEditorPage)
             };
 
@@ -415,6 +441,10 @@ namespace MBW.App
             else if (tag == "Configuration" && RootFrame.Content is ConfigurationPage configurationPage)
             {
                 _ = configurationPage.ReloadAsync();
+            }
+            else if (tag == "Send" && RootFrame.Content is SendPage sendPage)
+            {
+                _ = sendPage.ReloadAsync();
             }
 
             _currentTag = tag;

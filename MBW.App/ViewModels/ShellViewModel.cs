@@ -179,7 +179,7 @@ namespace MBW.App.ViewModels
                     dataPath,
                     _workspaceCoordinator.GetDataSheetName(),
                     _workspaceCoordinator.GetDataHeaderRow());
-                DatabaseStatusText = $"Database: {count:N0} baris";
+                DatabaseStatusText = $"Database: {count:N0} rows";
             }
             catch
             {
@@ -190,13 +190,6 @@ namespace MBW.App.ViewModels
         private void SyncAttachmentStatus()
         {
             if (!_workspaceCoordinator.HasWorkspace)
-            {
-                AttachmentStatusText = "Attachments: —";
-                return;
-            }
-
-            var config = _workspaceCoordinator.GetAttachmentConfiguration();
-            if (!config.Enabled)
             {
                 AttachmentStatusText = "Attachments: —";
                 return;

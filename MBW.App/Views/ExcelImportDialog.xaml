@@ -4,8 +4,8 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Title="Import Excel"
-    PrimaryButtonText="Gunakan sheet ini"
-    CloseButtonText="Batal"
+    PrimaryButtonText="Use this sheet"
+    CloseButtonText="Cancel"
     DefaultButton="Primary"
     PrimaryButtonClick="ContentDialog_PrimaryButtonClick">
 
@@ -43,7 +43,7 @@
                           SelectionMode="Single"
                           SelectionChanged="SheetList_SelectionChanged" />
 
-                <TextBlock Text="Baris header" FontWeight="SemiBold" FontSize="12" Margin="0,8,0,0" />
+                <TextBlock Text="Header row" FontWeight="SemiBold" FontSize="12" Margin="0,8,0,0" />
                 <ComboBox x:Name="HeaderRowCombo"
                           Width="120"
                           HorizontalAlignment="Left"
@@ -57,7 +57,7 @@
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <TextBlock Grid.Row="0" Text="Preview (10 baris pertama)" FontWeight="SemiBold" FontSize="12" />
+                <TextBlock Grid.Row="0" Text="Preview (first 10 rows)" FontWeight="SemiBold" FontSize="12" />
                 <Border Grid.Row="1"
                         BorderBrush="{ThemeResource CardStrokeColorDefault}"
                         BorderThickness="1"

@@ -5,6 +5,7 @@ using MBW.Core.Models;
 using MBW.Core.Services;
 using Microsoft.UI.Xaml;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 
@@ -15,11 +16,10 @@ namespace MBW.App.ViewModels
         private readonly IWorkspaceService _workspaceService;
         private readonly IExcelImporter _excelImporter;
         private readonly WorkspaceCoordinator _workspaceCoordinator;
+        private readonly SmtpSettingsCoordinator _smtpCoordinator;
 
         private WorkspaceModel? _currentWorkspace;
         private string _workspacePath = string.Empty;
-        private RecipientRow? _lastPreviewRecipient;
-        private EmailTemplate? _lastRenderedTemplate;
 
         [ObservableProperty]
         public partial string Subject { get; set; } = string.Empty;
@@ -50,29 +50,38 @@ namespace MBW.App.ViewModels
         [ObservableProperty]
         public partial bool IsLoading { get; set; } = false;
 
-        public event EventHandler<PreviewEventArgs>? PreviewRequested;
+        public event EventHandler<SendEventArgs>? SendRequested;
 
         public event EventHandler<string>? EditorContentLoaded;
 
         public Func<Task>? PullEditorContentAsync { get; set; }
 
-        public class PreviewEventArgs : EventArgs
+        public bool CanSend =>
+            !IsLoading
+            && _workspaceCoordinator.HasWorkspace
+            && !string.IsNullOrWhiteSpace(_workspaceCoordinator.GetResolvedDataFilePath());
+
+        public class SendEventArgs : EventArgs
         {
-            public string FromEmail { get; set; } = "seminar@fti.edu";
-            public string ToEmail { get; set; } = string.Empty;
-            public string Subject { get; set; } = string.Empty;
-            public string HtmlBody { get; set; } = string.Empty;
+            public EmailTemplate Template { get; init; } = new();
         }
 
         public EmailEditorViewModel(
             IWorkspaceService workspaceService,
             IExcelImporter excelImporter,
-            WorkspaceCoordinator workspaceCoordinator)
+            WorkspaceCoordinator workspaceCoordinator,
+            SmtpSettingsCoordinator smtpCoordinator)
         {
             _workspaceService = workspaceService;
             _excelImporter = excelImporter;
             _workspaceCoordinator = workspaceCoordinator;
+            _smtpCoordinator = smtpCoordinator;
             _workspaceCoordinator.Changed += (_, _) => _ = InitializeAsync();
+            _smtpCoordinator.Changed += (_, _) =>
+            {
+                OnPropertyChanged(nameof(CanSend));
+                SendCommand.NotifyCanExecuteChanged();
+            };
 
             _ = InitializeAsync();
         }
@@ -144,6 +153,8 @@ namespace MBW.App.ViewModels
             finally
             {
                 IsLoading = false;
+                OnPropertyChanged(nameof(CanSend));
+                SendCommand.NotifyCanExecuteChanged();
             }
         }
 
@@ -166,9 +177,20 @@ namespace MBW.App.ViewModels
             {
                 StatusMessage = $"Error loading Excel: {ex.Message}";
             }
+            finally
+            {
+                OnPropertyChanged(nameof(CanSend));
+                SendCommand.NotifyCanExecuteChanged();
+            }
         }
 
         partial void OnVariableSearchQueryChanged(string value) => RefreshFilteredVariables();
+
+        partial void OnIsLoadingChanged(bool value)
+        {
+            OnPropertyChanged(nameof(CanSend));
+            SendCommand.NotifyCanExecuteChanged();
+        }
 
         private void ClearVariables()
         {
@@ -235,8 +257,8 @@ namespace MBW.App.ViewModels
             }
         }
 
-        [RelayCommand]
-        public async Task PreviewAsync()
+        [RelayCommand(CanExecute = nameof(CanSend))]
+        public async Task SendAsync()
         {
             try
             {
@@ -244,65 +266,31 @@ namespace MBW.App.ViewModels
 
                 if (_currentWorkspace == null)
                 {
-                    StatusMessage = "Workspace or data file not found";
+                    StatusMessage = "Workspace is not loaded.";
                     return;
                 }
 
                 var dataPath = _workspaceCoordinator.GetResolvedDataFilePath();
                 if (string.IsNullOrEmpty(dataPath))
                 {
-                    StatusMessage = "Workspace or data file not found";
+                    StatusMessage = "Import an Excel database in the Database panel first.";
                     return;
                 }
 
-                _currentWorkspace.Template = new EmailTemplate(Subject, HtmlBody);
+                var template = new EmailTemplate(Subject, HtmlBody);
+                _currentWorkspace.Template = template;
 
-                IsLoading = true;
-                StatusMessage = "Loading preview...";
-
-                var preview = await _excelImporter.PreviewAsync(
-                    dataPath,
-                    1,
-                    _workspaceCoordinator.GetDataSheetName(),
-                    _workspaceCoordinator.GetDataHeaderRow());
-
-                if (preview.Count == 0)
+                SendRequested?.Invoke(this, new SendEventArgs
                 {
-                    StatusMessage = "No recipients found in Excel file";
-                    return;
-                }
-
-                var firstRecipient = preview[0];
-                var template = _currentWorkspace.Template;
-                var rendered = template.RenderForRecipient(firstRecipient);
-
-                _lastPreviewRecipient = firstRecipient;
-                _lastRenderedTemplate = rendered;
-
-                PreviewRequested?.Invoke(this, new PreviewEventArgs
-                {
-                    FromEmail = "seminar@fti.edu",
-                    ToEmail = firstRecipient.Get("Email") ?? string.Empty,
-                    Subject = rendered.Subject,
-                    HtmlBody = rendered.HtmlBody
+                    Template = template
                 });
 
-                StatusMessage = "Preview displayed";
+                StatusMessage = "Opened Send page.";
             }
             catch (Exception ex)
             {
-                StatusMessage = $"Error generating preview: {ex.Message}";
+                StatusMessage = $"Failed to open Send page: {ex.Message}";
             }
-            finally
-            {
-                IsLoading = false;
-            }
-        }
-
-        [RelayCommand]
-        public void Continue()
-        {
-            StatusMessage = "Continue to Sending - Not yet implemented (STEP 8)";
         }
 
         public void InsertVariable(string variableName)

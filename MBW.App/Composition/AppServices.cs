@@ -70,6 +70,7 @@ namespace MBW.App.Composition
         }
 
         private static ConfigurationViewModel? _configurationViewModel;
+        private static SendPageViewModel? _sendPageViewModel;
 
         public static ConfigurationViewModel GetConfigurationViewModel()
         {
@@ -97,9 +98,18 @@ namespace MBW.App.Composition
 
         public static AttachmentsViewModel CreateAttachmentsViewModel() => GetAttachmentsViewModel();
 
+        public static SendPageViewModel GetSendPageViewModel()
+        {
+            return _sendPageViewModel ??= new SendPageViewModel(
+                ExcelImporter,
+                WorkspaceCoordinator,
+                AttachmentService,
+                SmtpSettingsCoordinator);
+        }
+
         public static EmailEditorViewModel CreateEmailEditorViewModel()
         {
-            return new EmailEditorViewModel(WorkspaceService, ExcelImporter, WorkspaceCoordinator);
+            return new EmailEditorViewModel(WorkspaceService, ExcelImporter, WorkspaceCoordinator, SmtpSettingsCoordinator);
         }
 
         public static ShellViewModel CreateShellViewModel()

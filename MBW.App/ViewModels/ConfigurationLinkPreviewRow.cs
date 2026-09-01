@@ -24,11 +24,11 @@ namespace MBW.App.ViewModels
 
         public string FileDisplay => IsMatched ? ExpectedFileName : "—";
 
-        public string StatusLabel => IsMatched ? "Ditemukan" : "Tidak ada";
+        public string StatusLabel => IsMatched ? "Matched" : "Missing";
 
         public string StatusGlyph => IsMatched ? "\uE73E" : "\uE783";
 
         public string MissingDisplayLine =>
-            $"Baris {RowNumber} · {KeyValue} → {ExpectedFileName}";
+            $"Row {RowNumber} · {KeyValue} → {ExpectedFileName}";
     }
 }

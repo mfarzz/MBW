@@ -80,10 +80,10 @@ namespace MBW.App.Views
         {
             var dialog = new ContentDialog
             {
-                Title = "Timpa file?",
-                Content = $"File \"{fileName}\" sudah ada di folder data workspace. Timpa file tersebut?",
-                PrimaryButtonText = "Timpa",
-                CloseButtonText = "Batal",
+                Title = "Overwrite file?",
+                Content = $"File \"{fileName}\" already exists in the workspace data folder. Overwrite it?",
+                PrimaryButtonText = "Overwrite",
+                CloseButtonText = "Cancel",
                 DefaultButton = ContentDialogButton.Close,
                 XamlRoot = XamlRoot
             };

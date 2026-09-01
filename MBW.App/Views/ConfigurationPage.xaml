@@ -18,7 +18,7 @@
 
         <StackPanel Grid.Row="0" Spacing="6">
             <TextBlock Text="Configuration" FontSize="28" FontWeight="SemiBold" />
-            <TextBlock Text="Cocokkan file lampiran individual dengan nilai kunci di database."
+            <TextBlock Text="Match individual attachment files to key values in the database."
                        Opacity="0.7"
                        TextWrapping="Wrap" />
         </StackPanel>
@@ -28,21 +28,21 @@
                 <controls:SearchableComboBox Grid.Column="0"
                                              ItemsSource="{Binding IndividualFolders}"
                                              SelectedItem="{Binding SelectedIndividualFolder, Mode=TwoWay}"
-                                             PlaceholderText="Pilih folder individual"
-                                             SearchPlaceholderText="Cari folder..." />
+                                             PlaceholderText="Select individual folder"
+                                             SearchPlaceholderText="Search folders..." />
 
                 <controls:SearchableComboBox Grid.Column="1"
                                              ItemsSource="{Binding DatabaseColumns}"
                                              SelectedItem="{Binding SelectedKeyColumn, Mode=TwoWay}"
-                                             PlaceholderText="Pilih kolom kunci"
-                                             SearchPlaceholderText="Cari kolom..." />
+                                             PlaceholderText="Select key column"
+                                             SearchPlaceholderText="Search columns..." />
 
                 <Button Grid.Column="2"
                         Command="{Binding MatchCommand}"
                         VerticalAlignment="Center">
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <FontIcon Glyph="&#xE8E5;" FontSize="14" />
-                        <TextBlock Text="Cocokkan" />
+                        <TextBlock Text="Match" />
                     </StackPanel>
                 </Button>
 
@@ -58,9 +58,9 @@
                           MinWidth="180"
                           VerticalAlignment="Center"
                           HorizontalAlignment="Right">
-                    <ComboBoxItem Content="Semua" />
-                    <ComboBoxItem Content="Ditemukan" />
-                    <ComboBoxItem Content="Tidak Ada" />
+                    <ComboBoxItem Content="All" />
+                    <ComboBoxItem Content="Matched" />
+                    <ComboBoxItem Content="Missing" />
                 </ComboBox>
             </Grid>
 
@@ -98,10 +98,10 @@
                         Spacing="8"
                         MaxWidth="360">
                 <FontIcon Glyph="&#xE8E5;" FontSize="28" Opacity="0.45" HorizontalAlignment="Center" />
-                <TextBlock Text="Belum ada hasil pencocokan"
+                <TextBlock Text="No match results yet"
                            FontWeight="SemiBold"
                            HorizontalAlignment="Center" />
-                <TextBlock Text="Pilih folder individual dan kolom kunci, lalu klik Cocokkan untuk menampilkan tabel."
+                <TextBlock Text="Select an individual folder and key column, then click Match to show the table."
                            Opacity="0.7"
                            TextAlignment="Center"
                            TextWrapping="Wrap" />
@@ -126,7 +126,7 @@
                       Height="{StaticResource ExplorerTableHeaderHeight}"
                       ColumnDefinitions="80,*,*,120">
                     <Border Grid.Column="0" Style="{StaticResource ExplorerColumnSeparatorBorderStyle}">
-                        <TextBlock Text="Baris"
+                        <TextBlock Text="Row"
                                    FontWeight="SemiBold"
                                    FontSize="12"
                                    Margin="12,0,8,0"
@@ -212,14 +212,14 @@
                     Spacing="12"
                     Margin="0,12,0,0"
                     Visibility="{Binding PaginationVisibility}">
-            <Button Content="Sebelumnya"
+            <Button Content="Previous"
                     Command="{Binding PreviousPageCommand}"
                     IsEnabled="{Binding CanGoPrevious}" />
             <TextBlock Text="{Binding PageCaption}"
                        VerticalAlignment="Center"
                        FontSize="12"
                        Foreground="{ThemeResource TextFillColorSecondary}" />
-            <Button Content="Berikutnya"
+            <Button Content="Next"
                     Command="{Binding NextPageCommand}"
                     IsEnabled="{Binding CanGoNext}" />
         </StackPanel>

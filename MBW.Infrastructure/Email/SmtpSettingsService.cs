@@ -53,7 +53,7 @@ namespace MBW.Infrastructure.Email
                 await JsonSerializer.SerializeAsync(stream, settings, JsonOptions, cancellationToken);
             }
 
-            if (!string.IsNullOrWhiteSpace(settings.Username) && !string.IsNullOrEmpty(password))
+            if (settings.RequiresAuthentication && !string.IsNullOrWhiteSpace(settings.Username) && !string.IsNullOrEmpty(password))
             {
                 SavePassword(settings.Username, password);
             }
@@ -85,11 +85,11 @@ namespace MBW.Infrastructure.Email
 
             try
             {
-                await ConnectAndAuthenticateAsync(server, port, secureSocketOptions, settings.Username, password, cancellationToken);
+                await ConnectAndAuthenticateAsync(server, port, secureSocketOptions, settings, password, cancellationToken);
             }
             catch (Exception ex) when (ShouldRetryWithAuto(secureSocketOptions, ex))
             {
-                await ConnectAndAuthenticateAsync(server, port, SecureSocketOptions.Auto, settings.Username, password, cancellationToken);
+                await ConnectAndAuthenticateAsync(server, port, SecureSocketOptions.Auto, settings, password, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -101,7 +101,7 @@ namespace MBW.Infrastructure.Email
             string server,
             int port,
             SecureSocketOptions secureSocketOptions,
-            string username,
+            SmtpSettings settings,
             string password,
             CancellationToken cancellationToken)
         {
@@ -110,9 +110,9 @@ namespace MBW.Infrastructure.Email
 
             await client.ConnectAsync(server, port, secureSocketOptions, cancellationToken);
 
-            if (!string.IsNullOrWhiteSpace(username))
+            if (settings.RequiresAuthentication && !string.IsNullOrWhiteSpace(settings.Username))
             {
-                await client.AuthenticateAsync(username, password, cancellationToken);
+                await client.AuthenticateAsync(settings.Username, password, cancellationToken);
             }
 
             await client.DisconnectAsync(true, cancellationToken);

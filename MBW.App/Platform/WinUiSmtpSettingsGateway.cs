@@ -59,31 +59,29 @@ namespace MBW.App.Platform
 
 
                 var form = new SmtpSettingsForm { DataContext = viewModel };
-
+                var contentHost = new Grid
+                {
+                    MaxWidth = 460,
+                    MaxHeight = 560,
+                    HorizontalAlignment = HorizontalAlignment.Left,
+                    VerticalAlignment = VerticalAlignment.Top
+                };
+                contentHost.Children.Add(form);
                 var saved = false;
 
-
-
                 var dialog = new ContentDialog
-
                 {
-
                     Title = "SMTP Settings",
-
-                    Content = form,
-
+                    Content = contentHost,
                     PrimaryButtonText = "Save",
-
                     CloseButtonText = "Cancel",
-
                     DefaultButton = ContentDialogButton.Primary,
-
-                    XamlRoot = _window.Content.XamlRoot
-
+                    XamlRoot = _window.Content.XamlRoot,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center
                 };
 
-
-
+                dialog.Opened += (_, _) => form.UpdateScrollHeight();
                 dialog.PrimaryButtonClick += async (_, args) =>
 
                 {

@@ -57,6 +57,7 @@
                             <MenuFlyoutItem Text="Database" Click="WorkspaceDatabase_Click" />
                             <MenuFlyoutItem Text="Attachments" Click="WorkspaceAttachments_Click" />
                             <MenuFlyoutItem Text="Configuration" Click="WorkspaceConfiguration_Click" />
+                            <MenuFlyoutItem Text="Send" Click="WorkspaceSend_Click" />
                             <MenuFlyoutSeparator />
                             <MenuFlyoutItem Text="SMTP" Click="WorkspaceSmtp_Click" />
                         </MenuFlyout>
@@ -179,6 +180,23 @@
                                     </Viewbox>
                                     <TextBlock Grid.Column="1" Text="Configuration" FontSize="13" Margin="10,0,0,0" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorPrimary}" />
                                 </Grid>
+                            </Grid>
+                        </Button>
+
+                        <!-- Send -->
+                        <Button x:Name="SendNavButton" Tag="Send" Click="NavButton_Click" Style="{StaticResource SubtleButtonStyle}" Height="32" HorizontalContentAlignment="Stretch" HorizontalAlignment="Stretch" Padding="0" CornerRadius="0">
+                            <Grid HorizontalAlignment="Stretch">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="3" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Border x:Name="SendNavRail" Grid.Column="0" Background="{ThemeResource AccentFillColorDefaultBrush}" Visibility="Collapsed" />
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" Margin="12,0,10,0" VerticalAlignment="Center">
+                                    <Viewbox Width="{StaticResource ShellNavIconSize}" Height="{StaticResource ShellNavIconSize}">
+                                        <SymbolIcon x:Name="SendNavIcon" Symbol="Send" Foreground="{ThemeResource TextFillColorSecondary}" />
+                                    </Viewbox>
+                                    <TextBlock Text="Send" FontSize="13" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorPrimary}" />
+                                </StackPanel>
                             </Grid>
                         </Button>
                     </StackPanel>

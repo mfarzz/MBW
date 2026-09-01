@@ -60,7 +60,7 @@ namespace MBW.App.Controls
                 nameof(PlaceholderText),
                 typeof(string),
                 typeof(SearchableComboBox),
-                new PropertyMetadata("Pilih item", OnPlaceholderTextChanged));
+                new PropertyMetadata("Select item", OnPlaceholderTextChanged));
 
         public string SearchPlaceholderText
         {
@@ -73,7 +73,9 @@ namespace MBW.App.Controls
                 nameof(SearchPlaceholderText),
                 typeof(string),
                 typeof(SearchableComboBox),
-                new PropertyMetadata("Cari...", OnSearchPlaceholderTextChanged));
+                new PropertyMetadata("Search...", OnSearchPlaceholderTextChanged));
+
+        public event EventHandler<string>? SelectionPicked;
 
         private static void OnItemsSourceChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
@@ -188,6 +190,7 @@ namespace MBW.App.Controls
             if (e.ClickedItem is string item)
             {
                 SelectedItem = item;
+                SelectionPicked?.Invoke(this, item);
                 OptionsFlyout.Hide();
             }
         }

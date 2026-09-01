@@ -54,7 +54,7 @@ namespace MBW.App.ViewModels
         public ObservableCollection<DatabasePreviewRow> PreviewRows { get; } = new();
 
         [ObservableProperty]
-        public partial string StatusMessage { get; set; } = "Belum ada database. Import file Excel untuk memulai.";
+        public partial string StatusMessage { get; set; } = "No database yet. Import an Excel file to get started.";
 
         [ObservableProperty]
         public partial string FileName { get; set; } = string.Empty;
@@ -110,7 +110,7 @@ namespace MBW.App.ViewModels
 
                 var start = ((CurrentPage - 1) * DefaultPageSize) + 1;
                 var end = Math.Min(CurrentPage * DefaultPageSize, TotalRows);
-                return $"Baris {start:N0}–{end:N0} dari {TotalRows:N0} · Halaman {CurrentPage} / {Math.Max(1, TotalPages)}";
+                return $"Rows {start:N0}–{end:N0} of {TotalRows:N0} · Page {CurrentPage} / {Math.Max(1, TotalPages)}";
             }
         }
 
@@ -124,7 +124,7 @@ namespace MBW.App.ViewModels
                 }
 
                 var sheet = string.IsNullOrEmpty(SheetName) ? string.Empty : $" · Sheet: {SheetName}";
-                return $"File: {FileName}{sheet} · {ColumnCount} kolom · header baris {_loadedHeaderRow}";
+                return $"File: {FileName}{sheet} · {ColumnCount} columns · header row {_loadedHeaderRow}";
             }
         }
 
@@ -180,13 +180,13 @@ namespace MBW.App.ViewModels
         {
             if (!_workspaceCoordinator.HasWorkspace)
             {
-                StatusMessage = "Buat atau buka workspace terlebih dahulu.";
+                StatusMessage = "Create or open a workspace first.";
                 return;
             }
 
             if (PickExcelFileAsync is null || ShowImportDialogAsync is null)
             {
-                StatusMessage = "Dialog import tidak tersedia.";
+                StatusMessage = "Import dialog is not available.";
                 return;
             }
 
@@ -200,21 +200,21 @@ namespace MBW.App.ViewModels
             if (!string.Equals(extension, ".xlsx", StringComparison.OrdinalIgnoreCase)
                 && !string.Equals(extension, ".xlsm", StringComparison.OrdinalIgnoreCase))
             {
-                StatusMessage = "Format tidak didukung. Gunakan file .xlsx atau .xlsm.";
+                StatusMessage = "Unsupported format. Use a .xlsx or .xlsm file.";
                 return;
             }
 
             var selection = await ShowImportDialogAsync(pickedPath);
             if (selection is null)
             {
-                StatusMessage = "Import dibatalkan.";
+                StatusMessage = "Import cancelled.";
                 return;
             }
 
             try
             {
                 IsBusy = true;
-                StatusMessage = "Mengimport file Excel...";
+                StatusMessage = "Importing Excel file...";
                 _suppressWorkspaceReload = true;
 
                 var workspacePath = _workspaceCoordinator.WorkspacePath!;
@@ -230,7 +230,7 @@ namespace MBW.App.ViewModels
                         || await ConfirmOverwriteAsync(fileName);
                     if (!overwrite)
                     {
-                        StatusMessage = "Import dibatalkan. File yang ada tidak diubah.";
+                        StatusMessage = "Import cancelled. Existing file was not changed.";
                         return;
                     }
                 }
@@ -242,11 +242,11 @@ namespace MBW.App.ViewModels
                 _workspaceCoordinator.UpdateDataFilePath(relativePath, selection.SheetName, selection.HeaderRow);
                 await _workspaceCoordinator.SaveCurrentAsync();
                 await LoadPageAsync(1, force: true);
-                StatusMessage = $"Berhasil import {fileName} (sheet \"{selection.SheetName}\").";
+                StatusMessage = $"Successfully imported {fileName} (sheet \"{selection.SheetName}\").";
             }
             catch (Exception ex)
             {
-                StatusMessage = $"Import gagal: {ex.Message}";
+                StatusMessage = $"Import failed: {ex.Message}";
             }
             finally
             {
@@ -292,7 +292,7 @@ namespace MBW.App.ViewModels
 
             if (!_workspaceCoordinator.HasWorkspace)
             {
-                ClearUi("Buat atau buka workspace terlebih dahulu.");
+                ClearUi("Create or open a workspace first.");
                 NoWorkspaceVisibility = Visibility.Visible;
                 return;
             }
@@ -300,7 +300,7 @@ namespace MBW.App.ViewModels
             var dataPath = _workspaceCoordinator.GetResolvedDataFilePath();
             if (string.IsNullOrWhiteSpace(dataPath))
             {
-                ClearUi("Belum ada database. Import file Excel untuk memulai.");
+                ClearUi("No database yet. Import an Excel file to get started.");
                 return;
             }
 
@@ -326,7 +326,7 @@ namespace MBW.App.ViewModels
                 IsBusy = true;
                 if (!_isInitialized || !HasData)
                 {
-                    StatusMessage = "Memuat database...";
+                    StatusMessage = "Loading database...";
                 }
 
                 var result = await _excelImporter.GetPageAsync(
@@ -375,13 +375,13 @@ namespace MBW.App.ViewModels
 
                 StatusMessage = HasData
                     ? $"Database siap: {TotalRows:N0} penerima dari {FileName}."
-                    : "Sheet yang dipilih tidak memiliki kolom.";
+                    : "The selected sheet has no columns.";
                 OnPropertyChanged(nameof(FileSummary));
                 OnPropertyChanged(nameof(PageCaption));
             }
             catch (Exception ex)
             {
-                ClearUi($"Gagal memuat database: {ex.Message}");
+                ClearUi($"Failed to load database: {ex.Message}");
             }
             finally
             {

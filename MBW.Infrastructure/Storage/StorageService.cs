@@ -127,7 +127,11 @@ namespace MBW.Infrastructure.Storage
                     Concurrency = model.Configuration.Concurrency,
                     FromName = model.Configuration.FromName,
                     FromEmail = model.Configuration.FromEmail,
-                    TestMode = model.Configuration.TestMode
+                    TestMode = model.Configuration.TestMode,
+                    EmailColumn = model.Configuration.EmailColumn,
+                    IncludeSharedAttachments = model.Configuration.IncludeSharedAttachments,
+                    IncludeIndividualAttachments = model.Configuration.IncludeIndividualAttachments,
+                    AttachmentRenamePattern = model.Configuration.AttachmentRenamePattern
                 } : null;
                 Metadata = model.Metadata != null ? new Dictionary<string, string>(model.Metadata) : null;
                 CreatedAt = model.CreatedAt;
@@ -172,7 +176,11 @@ namespace MBW.Infrastructure.Storage
                         Concurrency = Configuration.Concurrency,
                         FromName = Configuration.FromName,
                         FromEmail = Configuration.FromEmail,
-                        TestMode = Configuration.TestMode
+                        TestMode = Configuration.TestMode,
+                        EmailColumn = Configuration.EmailColumn,
+                        IncludeSharedAttachments = Configuration.IncludeSharedAttachments,
+                        IncludeIndividualAttachments = Configuration.IncludeIndividualAttachments,
+                        AttachmentRenamePattern = Configuration.AttachmentRenamePattern ?? string.Empty
                     };
                 }
 
@@ -204,6 +212,10 @@ namespace MBW.Infrastructure.Storage
             public string? FromName { get; set; }
             public string? FromEmail { get; set; }
             public bool TestMode { get; set; }
+            public string EmailColumn { get; set; } = string.Empty;
+            public bool IncludeSharedAttachments { get; set; } = true;
+            public bool IncludeIndividualAttachments { get; set; } = true;
+            public string AttachmentRenamePattern { get; set; } = string.Empty;
         }
 
         private class AttachmentConfigurationDto

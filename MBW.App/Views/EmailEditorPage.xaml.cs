@@ -1,5 +1,6 @@
 using MBW.App.Composition;
 using MBW.App.ViewModels;
+using MBW.Core.Models;
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -48,7 +49,7 @@ namespace MBW.App.Views
         {
             if (ViewModel is not null)
             {
-                ViewModel.PreviewRequested += ViewModel_PreviewRequested;
+                ViewModel.SendRequested += ViewModel_SendRequested;
                 ViewModel.PullEditorContentAsync = SyncEditorToViewModelAsync;
                 ViewModel.EditorContentLoaded += ViewModel_EditorContentLoaded;
 
@@ -125,9 +126,17 @@ namespace MBW.App.Views
             }
         }
 
-        private async void ViewModel_PreviewRequested(object? sender, EmailEditorViewModel.PreviewEventArgs e)
+        private async void ViewModel_SendRequested(object? sender, EmailEditorViewModel.SendEventArgs e)
         {
-            await ShowPreviewDialogAsync(e);
+            if (AppServices.GetMainWindow() is MainWindow mainWindow)
+            {
+                await mainWindow.OpenSendPageAsync();
+            }
+
+            if (ViewModel is not null)
+            {
+                ViewModel.StatusMessage = "Opened Send page.";
+            }
         }
 
         private void VariableFlyout_Opened(object sender, object e)
@@ -148,66 +157,6 @@ namespace MBW.App.Views
                 item.Click += OnInsertVariableClick;
                 flyout.Items.Add(item);
             }
-        }
-
-        private async Task ShowPreviewDialogAsync(EmailEditorViewModel.PreviewEventArgs preview)
-        {
-            var dialog = new ContentDialog
-            {
-                Title = "Email Preview",
-                PrimaryButtonText = "Close",
-                DefaultButton = ContentDialogButton.Primary,
-                XamlRoot = XamlRoot
-            };
-
-            var content = new StackPanel { Spacing = 12, Padding = new Thickness(12) };
-            content.Children.Add(new TextBlock { Text = $"From: {preview.FromEmail}", FontSize = 12 });
-            content.Children.Add(new TextBlock { Text = $"To: {preview.ToEmail}", FontSize = 12 });
-            content.Children.Add(new TextBlock 
-            { 
-                Text = $"Subject: {preview.Subject}", 
-                FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, 
-                FontSize = 13 
-            });
-            content.Children.Add(new Border
-            {
-                Height = 1,
-                Background = new SolidColorBrush(Microsoft.UI.Colors.LightGray)
-            });
-
-            var previewWebView = new WebView2 { MinHeight = 320, MinWidth = 520 };
-            content.Children.Add(previewWebView);
-            dialog.Content = content;
-
-            var dialogTask = dialog.ShowAsync();
-            try
-            {
-                await previewWebView.EnsureCoreWebView2Async();
-                previewWebView.NavigateToString(WrapPreviewHtml(preview.HtmlBody));
-            }
-            catch
-            {
-                content.Children.Remove(previewWebView);
-                content.Children.Add(new ScrollViewer
-            {
-                MaxHeight = 400,
-                Content = new TextBlock
-                {
-                    Text = preview.HtmlBody,
-                    TextWrapping = TextWrapping.Wrap,
-                    FontSize = 12
-                }
-                });
-            }
-
-            await dialogTask;
-        }
-
-        private static string WrapPreviewHtml(string htmlBody)
-        {
-            return "<!DOCTYPE html><html><head><meta charset=\"utf-8\" />" +
-                   "<style>body{font-family:'Segoe UI',sans-serif;font-size:14px;line-height:1.6;color:#1b1b1b;margin:0;padding:8px;}</style>" +
-                   "</head><body>" + htmlBody + "</body></html>";
         }
 
         private async Task InitializeWebView2Async()

@@ -15,7 +15,7 @@
 
         <StackPanel Grid.Row="0" Spacing="6">
             <TextBlock Text="Database" FontSize="28" FontWeight="SemiBold" />
-            <TextBlock Text="Import dan preview data penerima dari file Excel (.xlsx / .xlsm)."
+            <TextBlock Text="Import and preview recipient data from an Excel file (.xlsx / .xlsm)."
                        Opacity="0.7"
                        TextWrapping="Wrap" />
         </StackPanel>
@@ -27,7 +27,7 @@
                     BorderThickness="1"
                     CornerRadius="4"
                     Visibility="{Binding NoWorkspaceVisibility}">
-                <TextBlock Text="Buat atau buka workspace terlebih dahulu sebelum mengimport Excel."
+                <TextBlock Text="Create or open a workspace before importing Excel."
                            TextWrapping="Wrap"
                            Opacity="0.85" />
             </Border>
@@ -38,7 +38,7 @@
                         HorizontalAlignment="Left">
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <FontIcon Glyph="&#xE8E5;" FontSize="14" />
-                        <TextBlock Text="Import file Excel" />
+                        <TextBlock Text="Import Excel file" />
                     </StackPanel>
                 </Button>
                 <ProgressRing IsActive="{Binding IsBusy}"
@@ -68,10 +68,10 @@
                         Spacing="8"
                         MaxWidth="360">
                 <FontIcon Glyph="&#xE8F1;" FontSize="28" Opacity="0.45" HorizontalAlignment="Center" />
-                <TextBlock Text="Belum ada database"
+                <TextBlock Text="No database yet"
                            FontWeight="SemiBold"
                            HorizontalAlignment="Center" />
-                <TextBlock Text="Klik Import file Excel, pilih sheet dan baris header, lalu konfirmasi untuk menyimpan data penerima."
+                <TextBlock Text="Click Import Excel file, choose a sheet and header row, then confirm to save recipient data."
                            Opacity="0.7"
                            TextAlignment="Center"
                            TextWrapping="Wrap" />
@@ -117,14 +117,14 @@
                     Spacing="12"
                     Margin="0,12,0,0"
                     Visibility="{Binding PreviewVisibility}">
-            <Button Content="Sebelumnya"
+            <Button Content="Previous"
                     Command="{Binding PreviousPageCommand}"
                     IsEnabled="{Binding CanGoPrevious}" />
             <TextBlock Text="{Binding PageCaption}"
                        VerticalAlignment="Center"
                        FontSize="12"
                        Foreground="{ThemeResource TextFillColorSecondary}" />
-            <Button Content="Berikutnya"
+            <Button Content="Next"
                     Command="{Binding NextPageCommand}"
                     IsEnabled="{Binding CanGoNext}" />
         </StackPanel>

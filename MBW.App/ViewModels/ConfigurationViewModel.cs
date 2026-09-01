@@ -41,7 +41,6 @@ namespace MBW.App.ViewModels
             _workspaceCoordinator.Changed += (_, _) =>
             {
                 OnPropertyChanged(nameof(HasWorkspace));
-                OnPropertyChanged(nameof(AttachmentsEnabled));
                 OnPropertyChanged(nameof(GateMessage));
                 OnPropertyChanged(nameof(GateVisibility));
                 OnPropertyChanged(nameof(FormVisibility));
@@ -102,8 +101,6 @@ namespace MBW.App.ViewModels
 
         public bool HasWorkspace => _workspaceCoordinator.HasWorkspace;
 
-        public bool AttachmentsEnabled => _workspaceCoordinator.GetAttachmentConfiguration().Enabled;
-
         public bool HasDatabase => !string.IsNullOrWhiteSpace(_workspaceCoordinator.GetResolvedDataFilePath());
 
         public bool HasIndividualFolders => IndividualFolders.Count > 0;
@@ -115,7 +112,6 @@ namespace MBW.App.ViewModels
         public bool CanMatch =>
             !IsBusy
             && HasWorkspace
-            && AttachmentsEnabled
             && HasDatabase
             && HasIndividualFolders
             && !string.IsNullOrWhiteSpace(SelectedIndividualFolder)
@@ -125,7 +121,7 @@ namespace MBW.App.ViewModels
 
         public bool CanGoNext => !IsBusy && HasMatchData && CurrentPage < TotalPages;
 
-        public string KeyColumnHeader => string.IsNullOrWhiteSpace(SelectedKeyColumn) ? "Kunci" : SelectedKeyColumn;
+        public string KeyColumnHeader => string.IsNullOrWhiteSpace(SelectedKeyColumn) ? "Key" : SelectedKeyColumn;
 
         public string? GateMessage
         {
@@ -133,22 +129,17 @@ namespace MBW.App.ViewModels
             {
                 if (!HasWorkspace)
                 {
-                    return "Buat atau buka workspace terlebih dahulu.";
-                }
-
-                if (!AttachmentsEnabled)
-                {
-                    return "Aktifkan lampiran di panel Attachments sebelum mengatur konfigurasi ini.";
+                    return "Create or open a workspace first.";
                 }
 
                 if (!HasDatabase)
                 {
-                    return "Import database Excel terlebih dahulu di panel Database.";
+                    return "Import an Excel database in the Database panel first.";
                 }
 
                 if (!HasIndividualFolders)
                 {
-                    return "Buat atau import folder individual di panel Attachments.";
+                    return "Create or import an individual folder in the Attachments panel.";
                 }
 
                 return null;
@@ -157,7 +148,7 @@ namespace MBW.App.ViewModels
 
         public string ValidationSummary =>
             HasValidationSummary
-                ? $"{MatchedCount:N0} cocok · {MissingCount:N0} tidak ada"
+                ? $"{MatchedCount:N0} matched · {MissingCount:N0} missing"
                 : string.Empty;
 
         public string PageCaption
@@ -171,7 +162,7 @@ namespace MBW.App.ViewModels
 
                 var start = ((CurrentPage - 1) * DefaultPageSize) + 1;
                 var end = Math.Min(CurrentPage * DefaultPageSize, TotalResultRows);
-                return $"Baris {start:N0}–{end:N0} dari {TotalResultRows:N0} · Halaman {CurrentPage} / {Math.Max(1, TotalPages)}";
+                return $"Rows {start:N0}–{end:N0} of {TotalResultRows:N0} · Page {CurrentPage} / {Math.Max(1, TotalPages)}";
             }
         }
 
@@ -209,7 +200,7 @@ namespace MBW.App.ViewModels
             if (!HasWorkspace)
             {
                 ResetState();
-                StatusMessage = "Buat atau buka workspace terlebih dahulu.";
+                StatusMessage = "Create or open a workspace first.";
                 _isInitialized = true;
                 _loadedWorkspacePath = null;
                 _isLoading = false;
@@ -247,8 +238,8 @@ namespace MBW.App.ViewModels
                 if (!restored)
                 {
                     StatusMessage = HasValidationSummary
-                        ? $"Hasil terakhir: {ValidationSummary}. Klik Cocokkan untuk memperbarui tabel."
-                        : "Pilih folder dan kolom kunci, lalu klik Cocokkan.";
+                        ? $"Last result: {ValidationSummary}. Click Match to refresh the table."
+                        : "Select a folder and key column, then click Match.";
                 }
 
                 _isInitialized = true;
@@ -256,7 +247,7 @@ namespace MBW.App.ViewModels
             }
             catch (Exception ex)
             {
-                StatusMessage = $"Gagal memuat konfigurasi: {ex.Message}";
+                StatusMessage = $"Failed to load configuration: {ex.Message}";
             }
             finally
             {
@@ -328,13 +319,13 @@ namespace MBW.App.ViewModels
                 var success = await ExecuteMatchAsync();
                 if (success)
                 {
-                    StatusMessage = $"Pencocokan selesai: {ValidationSummary}.";
+                    StatusMessage = $"Match complete: {ValidationSummary}.";
                     await PersistAsync(includeValidationCache: true);
                 }
             }
             catch (Exception ex)
             {
-                StatusMessage = $"Gagal mencocokkan: {ex.Message}";
+                StatusMessage = $"Match failed: {ex.Message}";
             }
             finally
             {
@@ -350,7 +341,7 @@ namespace MBW.App.ViewModels
                 var success = await ExecuteMatchAsync();
                 if (success)
                 {
-                    StatusMessage = $"Hasil terakhir: {ValidationSummary}.";
+                    StatusMessage = $"Last result: {ValidationSummary}.";
                 }
 
                 return success;
@@ -358,7 +349,7 @@ namespace MBW.App.ViewModels
             catch
             {
                 StatusMessage = HasValidationSummary
-                    ? $"Hasil terakhir: {ValidationSummary}. Klik Cocokkan untuk memperbarui tabel."
+                    ? $"Last result: {ValidationSummary}. Click Match to refresh the table."
                     : StatusMessage;
                 return false;
             }
@@ -380,7 +371,7 @@ namespace MBW.App.ViewModels
 
             if (!Directory.Exists(folderPath))
             {
-                StatusMessage = "Folder lampiran tidak ditemukan.";
+                StatusMessage = "Attachments folder not found.";
                 return false;
             }
 
@@ -397,7 +388,7 @@ namespace MBW.App.ViewModels
 
             if (recipients.Count == 0)
             {
-                StatusMessage = "Tidak ada baris data di bawah baris header Excel. Periksa panel Database: file sudah diimpor, sheet benar, dan baris header sesuai dengan data.";
+                StatusMessage = "No data rows below the Excel header row. Check the Database panel: file imported, correct sheet, and header row aligned with data.";
                 return false;
             }
 
@@ -646,14 +637,14 @@ namespace MBW.App.ViewModels
 
                 _workspaceCoordinator.UpdateAttachmentConfiguration(new AttachmentConfiguration
                 {
-                    Enabled = existing.Enabled,
+                    Enabled = true,
                     Link = link
                 });
                 await _workspaceCoordinator.SaveCurrentAsync();
             }
             catch (Exception ex)
             {
-                StatusMessage = $"Gagal menyimpan: {ex.Message}";
+                StatusMessage = $"Failed to save: {ex.Message}";
             }
             finally
             {
@@ -665,7 +656,6 @@ namespace MBW.App.ViewModels
         private void NotifyAll()
         {
             OnPropertyChanged(nameof(HasWorkspace));
-            OnPropertyChanged(nameof(AttachmentsEnabled));
             OnPropertyChanged(nameof(HasDatabase));
             OnPropertyChanged(nameof(HasIndividualFolders));
             OnPropertyChanged(nameof(GateMessage));

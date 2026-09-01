@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="MBW.App.Views.SendPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:MBW.App.Controls"
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+
+    <Grid Padding="32">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Spacing="6">
+            <TextBlock Text="Send Email"
+                       FontSize="28"
+                       FontWeight="SemiBold" />
+            <TextBlock Text="Review personalized emails and attachments before sending."
+                       Opacity="0.7"
+                       TextWrapping="Wrap" />
+        </StackPanel>
+
+        <Border Grid.Row="1"
+                Padding="12"
+                Margin="0,16,0,12"
+                Background="{ThemeResource CardBackgroundFillColorSecondary}"
+                BorderBrush="{ThemeResource CardStrokeColorDefault}"
+                BorderThickness="1"
+                CornerRadius="4"
+                Visibility="{Binding GateVisibility}">
+            <TextBlock Text="{Binding GateMessage}"
+                       TextWrapping="Wrap"
+                       Opacity="0.85" />
+        </Border>
+
+        <Grid Grid.Row="2"
+              Margin="0,32,0,0"
+              ColumnSpacing="24"
+              Visibility="{Binding FormVisibility}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="320" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0" Spacing="16" Margin="0,4,0,0">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Email column"
+                               FontSize="12"
+                               FontWeight="SemiBold" />
+                    <controls:SearchableComboBox ItemsSource="{Binding EmailColumns}"
+                                                 SelectedItem="{Binding SelectedEmailColumn, Mode=TwoWay}"
+                                                 PlaceholderText="Select email column"
+                                                 SearchPlaceholderText="Search columns..." />
+                </StackPanel>
+
+                <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" />
+
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Attachments"
+                               FontSize="13"
+                               FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding SharedAttachmentSummary}"
+                               FontSize="12"
+                               Foreground="{ThemeResource TextFillColorSecondary}"
+                               TextWrapping="WrapWholeWords" />
+                    <CheckBox Content="Include shared files"
+                              IsChecked="{Binding IncludeSharedAttachments, Mode=TwoWay}" />
+                    <TextBlock Text="{Binding IndividualAttachmentSummary}"
+                               FontSize="12"
+                               Foreground="{ThemeResource TextFillColorSecondary}"
+                               TextWrapping="WrapWholeWords"
+                               Margin="0,4,0,0" />
+                    <CheckBox Content="Include individual files"
+                              IsChecked="{Binding IncludeIndividualAttachments, Mode=TwoWay}" />
+
+                    <StackPanel Spacing="6" Margin="0,4,0,0">
+                        <TextBlock Text="Rename pattern"
+                                   FontSize="12"
+                                   FontWeight="SemiBold" />
+                        <TextBox x:Name="RenamePatternBox"
+                                 Text="{Binding AttachmentRenamePattern, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 PlaceholderText="{Binding RenamePatternPlaceholder}" />
+                        <controls:SearchableComboBox x:Name="RenameVariablePicker"
+                                                     ItemsSource="{Binding EmailColumns}"
+                                                     PlaceholderText="Insert variable"
+                                                     SearchPlaceholderText="Search columns..."
+                                                     SelectionPicked="RenameVariablePicker_SelectionPicked" />
+                        <TextBlock Text="{Binding RenamePreviewLine}"
+                                   FontSize="11"
+                                   Foreground="{ThemeResource TextFillColorSecondary}"
+                                   TextWrapping="WrapWholeWords"
+                                   FontFamily="Consolas"
+                                   Visibility="{Binding RenamePreviewVisibility}" />
+                        <TextBlock Text="Leave empty to keep the original file name."
+                                   FontSize="11"
+                                   Foreground="{ThemeResource TextFillColorSecondary}"
+                                   TextWrapping="WrapWholeWords"
+                                   Opacity="0.85" />
+                    </StackPanel>
+                </StackPanel>
+
+                <Button Content="Send now"
+                        Style="{StaticResource AccentButtonStyle}"
+                        Command="{Binding SendNowCommand}"
+                        HorizontalAlignment="Stretch" />
+            </StackPanel>
+
+            <Grid Grid.Column="1" RowSpacing="12" Margin="0,4,0,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <StackPanel Grid.Row="0" Spacing="4">
+                    <TextBlock Text="{Binding RowCaption}"
+                               FontSize="12"
+                               Foreground="{ThemeResource TextFillColorSecondary}" />
+                    <TextBlock Text="{Binding FromLine}" FontSize="12" TextWrapping="WrapWholeWords" />
+                    <TextBlock Text="{Binding ToLine}" FontSize="12" TextWrapping="WrapWholeWords" />
+                    <TextBlock Text="{Binding AttachmentLine}" FontSize="12" TextWrapping="WrapWholeWords" />
+                </StackPanel>
+
+                <StackPanel Grid.Row="1" Spacing="6">
+                    <TextBlock Text="Subject"
+                               FontSize="12"
+                               FontWeight="SemiBold" />
+                    <TextBox Text="{Binding Subject, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             PlaceholderText="Email subject"
+                             MaxLength="998" />
+                </StackPanel>
+
+                <Border Grid.Row="2"
+                        MinHeight="360"
+                        Background="{ThemeResource LayerFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="4">
+                    <WebView2 x:Name="PreviewWebView"
+                              DefaultBackgroundColor="White" />
+                </Border>
+
+                <StackPanel Grid.Row="3"
+                            Orientation="Horizontal"
+                            Spacing="8">
+                    <Button Content="Previous row"
+                            Command="{Binding PreviousRowCommand}" />
+                    <Button Content="Next row"
+                            Command="{Binding NextRowCommand}" />
+                    <ProgressRing IsActive="{Binding IsBusy}"
+                                  Width="20"
+                                  Height="20"
+                                  Visibility="{Binding BusyVisibility}" />
+                </StackPanel>
+            </Grid>
+        </Grid>
+
+        <TextBlock Grid.Row="3"
+                   Margin="0,12,0,0"
+                   Text="{Binding StatusMessage}"
+                   FontSize="12"
+                   Foreground="{ThemeResource TextFillColorSecondary}"
+                   TextWrapping="WrapWholeWords"
+                   Visibility="{Binding FormVisibility}" />
+    </Grid>
+</Page>

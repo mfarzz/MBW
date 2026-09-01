@@ -165,6 +165,40 @@ namespace MBW.Core.Services
             Current.ModifiedAt = DateTimeOffset.UtcNow;
         }
 
+        public SendConfiguration GetSendConfiguration()
+        {
+            if (Current is null)
+            {
+                return new SendConfiguration();
+            }
+
+            Current.Configuration ??= new SendConfiguration();
+            return Current.Configuration;
+        }
+
+        public void UpdateSendConfiguration(SendConfiguration configuration)
+        {
+            if (Current is null || configuration is null)
+            {
+                return;
+            }
+
+            Current.Configuration = new SendConfiguration
+            {
+                SmtpAccountId = configuration.SmtpAccountId,
+                DelayMilliseconds = configuration.DelayMilliseconds,
+                Concurrency = configuration.Concurrency,
+                FromName = configuration.FromName,
+                FromEmail = configuration.FromEmail,
+                TestMode = configuration.TestMode,
+                EmailColumn = configuration.EmailColumn,
+                IncludeSharedAttachments = configuration.IncludeSharedAttachments,
+                IncludeIndividualAttachments = configuration.IncludeIndividualAttachments,
+                AttachmentRenamePattern = configuration.AttachmentRenamePattern ?? string.Empty
+            };
+            Current.ModifiedAt = DateTimeOffset.UtcNow;
+        }
+
         public string GetSharedAttachmentsDirectory() =>
             Path.Combine(WorkspacePath!, "attachments", "shared");
 
