@@ -10,6 +10,8 @@
 [Aa]rtifacts/
 [Ll]og/
 [Ll]ogs/
+**/[Bb]in/**
+**/[Oo]bj/**
 
 ## .NET
 project.lock.json
@@ -37,12 +39,14 @@ project.fragment.lock.json
 
 ## Visual Studio / Rider
 .vs/
+**/.vs/**
 *.rsuser
 *.suo
 *.user
 *.userosscache
 *.sln.docstates
 *.userprefs
+*.slnx.user
 .idea/
 
 ## VS Code / Cursor (local editor settings)
@@ -65,6 +69,10 @@ Package.StoreAssociation.xml
 *.publishproj
 *.pubxml.user
 publish/
+*.xbf
+*.pri
+**/embed/
+*.winmd
 
 ## Test & coverage
 [Tt]est[Rr]esult*/

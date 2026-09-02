@@ -439,8 +439,8 @@ namespace MBW.App.ViewModels
             try
             {
                 IsSending = true;
-                await _sendGateway.RunProgressAsync(ExecuteSendAsync);
-                StatusMessage = "Send finished.";
+                var summary = await _sendGateway.RunProgressAsync(ExecuteSendAsync);
+                StatusMessage = summary ?? "Send finished.";
             }
             catch (Exception ex)
             {
@@ -452,33 +452,54 @@ namespace MBW.App.ViewModels
             }
         }
 
-        private async Task ExecuteSendAsync(SendProgressViewModel progress, CancellationToken cancellationToken)
+        private async Task ExecuteSendAsync(
+            SendProgressViewModel progress,
+            CancellationToken cancellationToken,
+            IReadOnlyList<int>? rowNumbers = null)
         {
-            var (from, to, total) = GetValidatedSendRange();
             var delaySeconds = (int)Math.Round(Math.Max(0, DelaySeconds));
-            progress.Reset();
+            IReadOnlyList<int> rowsToSend;
 
-            var rows = new List<(int RowNumber, string Email)>();
-            for (var rowNumber = from; rowNumber <= to; rowNumber++)
+            if (rowNumbers is not null)
             {
-                var recipient = _recipients[rowNumber - 1];
-                var email = GetRecipientEmail(recipient, SelectedEmailColumn) ?? "(no email)";
-                rows.Add((rowNumber, email));
+                if (rowNumbers.Count == 0)
+                {
+                    return;
+                }
+
+                rowsToSend = rowNumbers;
+            }
+            else
+            {
+                var (from, to, _) = GetValidatedSendRange();
+                progress.Reset();
+
+                var rows = new List<(int RowNumber, string Email)>();
+                for (var rowNumber = from; rowNumber <= to; rowNumber++)
+                {
+                    var recipient = _recipients[rowNumber - 1];
+                    var email = GetRecipientEmail(recipient, SelectedEmailColumn) ?? "(no email)";
+                    rows.Add((rowNumber, email));
+                }
+
+                await progress.InitializeEntriesAsync(rows);
+                rowsToSend = rows.ConvertAll(row => row.RowNumber);
             }
 
-            await progress.InitializeEntriesAsync(rows);
-            await progress.ReportAsync(0, total);
+            var total = rowsToSend.Count;
+            var sentInBatch = 0;
+            await progress.ReportAsync(sentInBatch, total);
 
             var sendConfig = _workspaceCoordinator.GetSendConfiguration();
             var template = new EmailTemplate(Subject, GetCurrentTemplate().HtmlBody);
 
-            var sent = 0;
             try
             {
-                for (var rowNumber = from; rowNumber <= to; rowNumber++)
+                for (var index = 0; index < rowsToSend.Count; index++)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
+                    var rowNumber = rowsToSend[index];
                     var recipient = _recipients[rowNumber - 1];
                     var email = GetRecipientEmail(recipient, SelectedEmailColumn);
                     if (string.IsNullOrWhiteSpace(email))
@@ -495,16 +516,16 @@ namespace MBW.App.ViewModels
                     if (result.Success)
                     {
                         await progress.SetStatusAsync(rowNumber, SendProgressStatus.Succeeded);
-                        sent++;
+                        sentInBatch++;
                     }
                     else
                     {
                         await progress.SetStatusAsync(rowNumber, SendProgressStatus.Failed, result.ErrorMessage);
                     }
 
-                    await progress.ReportAsync(sent, total);
+                    await progress.ReportAsync(sentInBatch, total);
 
-                    if (rowNumber < to && delaySeconds > 0)
+                    if (index < rowsToSend.Count - 1 && delaySeconds > 0)
                     {
                         await Task.Delay(TimeSpan.FromSeconds(delaySeconds), cancellationToken);
                     }

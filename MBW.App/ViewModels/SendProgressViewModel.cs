@@ -3,6 +3,8 @@ using Microsoft.UI.Dispatching;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace MBW.App.ViewModels
@@ -104,6 +106,105 @@ namespace MBW.App.ViewModels
             IsComplete = true;
             IsIndeterminate = false;
             ProgressCaption = caption;
+        }
+
+        public (int Succeeded, int Failed, int Skipped, int Cancelled) GetCounts()
+        {
+            var succeeded = 0;
+            var failed = 0;
+            var skipped = 0;
+            var cancelled = 0;
+
+            foreach (var entry in Entries)
+            {
+                switch (entry.Status)
+                {
+                    case SendProgressStatus.Succeeded:
+                        succeeded++;
+                        break;
+                    case SendProgressStatus.Failed:
+                        failed++;
+                        break;
+                    case SendProgressStatus.Skipped:
+                        skipped++;
+                        break;
+                    case SendProgressStatus.Cancelled:
+                        cancelled++;
+                        break;
+                }
+            }
+
+            return (succeeded, failed, skipped, cancelled);
+        }
+
+        public bool HasRetryableFailures => Entries.Any(entry => entry.Status == SendProgressStatus.Failed);
+
+        public string BuildSummaryCaption()
+        {
+            var (succeeded, failed, skipped, cancelled) = GetCounts();
+            var parts = new List<string>();
+
+            if (succeeded > 0)
+            {
+                parts.Add($"{succeeded:N0} sent");
+            }
+
+            if (failed > 0)
+            {
+                parts.Add($"{failed:N0} failed");
+            }
+
+            if (skipped > 0)
+            {
+                parts.Add($"{skipped:N0} skipped");
+            }
+
+            if (cancelled > 0)
+            {
+                parts.Add($"{cancelled:N0} cancelled");
+            }
+
+            return parts.Count > 0 ? string.Join(" · ", parts) : "No recipients processed";
+        }
+
+        public string BuildExportContent()
+        {
+            var builder = new StringBuilder();
+            builder.AppendLine("Row,Email,Status,Error");
+
+            foreach (var entry in Entries.OrderBy(entry => entry.RowNumber))
+            {
+                var error = entry.ErrorMessage?.Replace("\"", "\"\"") ?? string.Empty;
+                builder.AppendLine($"{entry.RowNumber},\"{entry.Email}\",{entry.Status},\"{error}\"");
+            }
+
+            return builder.ToString();
+        }
+
+        public IReadOnlyList<int> GetFailedRowNumbers() =>
+            Entries
+                .Where(entry => entry.Status == SendProgressStatus.Failed)
+                .Select(entry => entry.RowNumber)
+                .ToList();
+
+        public void PrepareRetryFailed()
+        {
+            foreach (var entry in Entries)
+            {
+                if (entry.Status != SendProgressStatus.Failed)
+                {
+                    continue;
+                }
+
+                entry.Status = SendProgressStatus.Pending;
+                entry.ErrorMessage = null;
+                EntryUpdated?.Invoke(this, entry);
+            }
+
+            IsComplete = false;
+            IsIndeterminate = false;
+            ProgressValue = 0;
+            ProgressCaption = "Retrying failed...";
         }
 
         public void Reset()

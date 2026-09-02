@@ -4,8 +4,12 @@ using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Windows.Storage;
+using Windows.Storage.Pickers;
+using WinRT.Interop;
 
 namespace MBW.App.Platform
 {
@@ -41,7 +45,7 @@ namespace MBW.App.Platform
             });
         }
 
-        public Task RunProgressAsync(Func<SendProgressViewModel, CancellationToken, Task> work)
+        public Task<string?> RunProgressAsync(Func<SendProgressViewModel, CancellationToken, IReadOnlyList<int>?, Task> work)
         {
             return RunOnUiThreadAsync(async () =>
             {
@@ -55,8 +59,14 @@ namespace MBW.App.Platform
                 };
                 contentHost.Children.Add(form);
 
-                using var cts = new CancellationTokenSource();
                 var allowClose = false;
+                var isSendingPhase = true;
+                CancellationTokenSource? activeCts = null;
+                TaskCompletionSource<PostSendAction>? postActionTcs = null;
+                IReadOnlyList<int>? rowFilter = null;
+                string? finalSummary = null;
+                var wasCancelled = false;
+
                 var dialog = new ContentDialog
                 {
                     Title = "Sending emails",
@@ -78,68 +88,164 @@ namespace MBW.App.Platform
                 dialog.PrimaryButtonClick += (_, args) =>
                 {
                     var deferral = args.GetDeferral();
-                    cts.Cancel();
+                    if (isSendingPhase)
+                    {
+                        activeCts?.Cancel();
+                    }
+                    else
+                    {
+                        postActionTcs?.TrySetResult(PostSendAction.RetryFailed);
+                    }
+
+                    deferral.Complete();
+                };
+
+                dialog.SecondaryButtonClick += (_, args) =>
+                {
+                    var deferral = args.GetDeferral();
+                    if (!isSendingPhase)
+                    {
+                        postActionTcs?.TrySetResult(PostSendAction.ExportLog);
+                    }
+
+                    deferral.Complete();
+                };
+
+                dialog.CloseButtonClick += (_, args) =>
+                {
+                    var deferral = args.GetDeferral();
+                    if (!isSendingPhase)
+                    {
+                        postActionTcs?.TrySetResult(PostSendAction.Close);
+                    }
+
                     deferral.Complete();
                 };
 
                 dialog.Opened += async (_, _) =>
                 {
-                    var completedSuccessfully = false;
-                    try
+                    while (true)
                     {
-                        await work(progressViewModel, cts.Token);
-                        await progressViewModel.MarkCompleteAsync("Send complete.");
-                        completedSuccessfully = true;
+                        isSendingPhase = true;
+                        wasCancelled = false;
+                        ConfigureSendingButtons(dialog);
+
+                        activeCts?.Dispose();
+                        activeCts = new CancellationTokenSource();
+
+                        try
+                        {
+                            await work(progressViewModel, activeCts.Token, rowFilter);
+                            finalSummary = progressViewModel.BuildSummaryCaption();
+                            await progressViewModel.MarkCompleteAsync(finalSummary);
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            wasCancelled = true;
+                            await progressViewModel.MarkIncompleteAsCancelledAsync();
+                            finalSummary = progressViewModel.BuildSummaryCaption();
+                            await progressViewModel.MarkCompleteAsync(finalSummary);
+                        }
+                        catch (Exception ex)
+                        {
+                            finalSummary = $"{progressViewModel.BuildSummaryCaption()} · Error: {ex.Message}";
+                            await progressViewModel.MarkCompleteAsync(finalSummary);
+                        }
+
+                        isSendingPhase = false;
+                        dialog.Title = GetDialogTitle(progressViewModel, wasCancelled);
+                        ConfigureCompleteButtons(dialog, progressViewModel.HasRetryableFailures);
+
+                        postActionTcs = new TaskCompletionSource<PostSendAction>(TaskCreationOptions.RunContinuationsAsynchronously);
+                        var action = await postActionTcs.Task;
+
+                        if (action == PostSendAction.Close)
+                        {
+                            break;
+                        }
+
+                        if (action == PostSendAction.ExportLog)
+                        {
+                            if (await TryExportSendLogAsync(progressViewModel))
+                            {
+                                finalSummary = $"{progressViewModel.BuildSummaryCaption()} · Log exported";
+                                await progressViewModel.MarkCompleteAsync(finalSummary);
+                            }
+
+                            continue;
+                        }
+
+                        rowFilter = progressViewModel.GetFailedRowNumbers();
+                        if (rowFilter.Count == 0)
+                        {
+                            continue;
+                        }
+
+                        progressViewModel.PrepareRetryFailed();
+                        dialog.Title = "Sending emails";
                     }
-                    catch (OperationCanceledException)
-                    {
-                        await progressViewModel.MarkIncompleteAsCancelledAsync();
-                        await progressViewModel.MarkCompleteAsync("Send cancelled.");
-                    }
-                    catch (Exception ex)
-                    {
-                        await progressViewModel.MarkCompleteAsync($"Send failed: {ex.Message}");
-                    }
-                    finally
-                    {
-                        dialog.Title = completedSuccessfully
-                            ? "Send complete"
-                            : cts.IsCancellationRequested
-                                ? "Send cancelled"
-                                : "Send failed";
-                        dialog.PrimaryButtonText = string.Empty;
-                        dialog.IsPrimaryButtonEnabled = false;
-                        dialog.CloseButtonText = "Close";
-                        allowClose = true;
-                    }
+
+                    allowClose = true;
+                    dialog.Hide();
                 };
 
                 await dialog.ShowAsync();
+                activeCts?.Dispose();
+                return finalSummary;
             });
         }
 
-        private Task RunOnUiThreadAsync(Func<Task> action)
+        private static void ConfigureSendingButtons(ContentDialog dialog)
         {
-            var queue = _window.DispatcherQueue;
-            if (queue.HasThreadAccess)
+            dialog.Title = "Sending emails";
+            dialog.PrimaryButtonText = "Cancel";
+            dialog.IsPrimaryButtonEnabled = true;
+            dialog.SecondaryButtonText = string.Empty;
+            dialog.IsSecondaryButtonEnabled = false;
+            dialog.CloseButtonText = string.Empty;
+        }
+
+        private static void ConfigureCompleteButtons(ContentDialog dialog, bool hasFailures)
+        {
+            dialog.PrimaryButtonText = hasFailures ? "Retry failed" : string.Empty;
+            dialog.IsPrimaryButtonEnabled = hasFailures;
+            dialog.SecondaryButtonText = "Export log";
+            dialog.IsSecondaryButtonEnabled = true;
+            dialog.CloseButtonText = "Close";
+        }
+
+        private static string GetDialogTitle(SendProgressViewModel progress, bool wasCancelled)
+        {
+            if (wasCancelled)
             {
-                return action();
+                return "Send cancelled";
             }
 
-            var tcs = new TaskCompletionSource();
-            queue.TryEnqueue(DispatcherQueuePriority.Normal, async () =>
+            var (_, failed, _, _) = progress.GetCounts();
+            return failed > 0 ? "Send finished" : "Send complete";
+        }
+
+        private async Task<bool> TryExportSendLogAsync(SendProgressViewModel progress)
+        {
+            var picker = new FileSavePicker
             {
-                try
-                {
-                    await action();
-                    tcs.SetResult();
-                }
-                catch (Exception ex)
-                {
-                    tcs.SetException(ex);
-                }
-            });
-            return tcs.Task;
+                SuggestedStartLocation = PickerLocationId.DocumentsLibrary,
+                SuggestedFileName = $"send-log-{DateTime.Now:yyyyMMdd-HHmmss}"
+            };
+            picker.FileTypeChoices.Add("CSV file", new List<string> { ".csv" });
+            picker.FileTypeChoices.Add("Text file", new List<string> { ".txt" });
+
+            var hwnd = WindowNative.GetWindowHandle(_window);
+            InitializeWithWindow.Initialize(picker, hwnd);
+
+            var file = await picker.PickSaveFileAsync();
+            if (file is null)
+            {
+                return false;
+            }
+
+            await FileIO.WriteTextAsync(file, progress.BuildExportContent());
+            return true;
         }
 
         private Task<T> RunOnUiThreadAsync<T>(Func<Task<T>> action)
@@ -163,6 +269,20 @@ namespace MBW.App.Platform
                 }
             });
             return tcs.Task;
+        }
+
+        private Task RunOnUiThreadAsync(Func<Task> action) =>
+            RunOnUiThreadAsync(async () =>
+            {
+                await action();
+                return true;
+            });
+
+        private enum PostSendAction
+        {
+            Close,
+            RetryFailed,
+            ExportLog
         }
     }
 }
