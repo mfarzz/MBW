@@ -33,6 +33,12 @@ namespace MBW.App.Composition
 
         public static SmtpSettingsCoordinator SmtpSettingsCoordinator { get; private set; } = null!;
 
+        public static IEmailSender EmailSender { get; private set; } = null!;
+
+        public static WinUiSendGateway SendGateway { get; private set; } = null!;
+
+        public static ShellViewModel? Shell { get; private set; }
+
         public static WelcomeViewModel WelcomeViewModel { get; private set; } = null!;
 
         private static DatabaseViewModel? _databaseViewModel;
@@ -56,6 +62,7 @@ namespace MBW.App.Composition
             ExcelImporter = new ExcelImporter();
             AttachmentService = new AttachmentService();
             SmtpSettingsService = new SmtpSettingsService();
+            EmailSender = new MailKitEmailSender(SmtpSettingsService);
             RecentProjectsService = new RecentProjectsService();
 
             var workspaceUiGateway = new WinUiWorkspaceUiGateway(mainWindow);
@@ -63,6 +70,7 @@ namespace MBW.App.Composition
 
             var smtpUiGateway = new WinUiSmtpSettingsGateway(mainWindow, SmtpSettingsService);
             SmtpSettingsCoordinator = new SmtpSettingsCoordinator(SmtpSettingsService, smtpUiGateway);
+            SendGateway = new WinUiSendGateway(mainWindow);
 
             WelcomeViewModel = new WelcomeViewModel(WorkspaceCoordinator, RecentProjectsService);
 
@@ -104,7 +112,9 @@ namespace MBW.App.Composition
                 ExcelImporter,
                 WorkspaceCoordinator,
                 AttachmentService,
-                SmtpSettingsCoordinator);
+                SmtpSettingsCoordinator,
+                EmailSender,
+                SendGateway);
         }
 
         public static EmailEditorViewModel CreateEmailEditorViewModel()
@@ -114,7 +124,9 @@ namespace MBW.App.Composition
 
         public static ShellViewModel CreateShellViewModel()
         {
-            return new ShellViewModel(WorkspaceCoordinator, SmtpSettingsCoordinator, RecentProjectsService, ExcelImporter);
+            var shell = new ShellViewModel(WorkspaceCoordinator, SmtpSettingsCoordinator, RecentProjectsService, ExcelImporter);
+            Shell = shell;
+            return shell;
         }
 
         public static WelcomeViewModel CreateWelcomeViewModel()

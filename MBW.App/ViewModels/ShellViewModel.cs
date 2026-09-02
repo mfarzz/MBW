@@ -135,6 +135,14 @@ namespace MBW.App.ViewModels
                 _workspaceCoordinator.WorkspacePath!);
         }
 
+        public void NotifyWorkspaceUnsaved()
+        {
+            if (_workspaceCoordinator.HasWorkspace)
+            {
+                WorkspaceSavedText = "Unsaved changes";
+            }
+        }
+
         private void SyncFromCoordinator(bool saved)
         {
             if (_workspaceCoordinator.HasWorkspace)
@@ -143,7 +151,7 @@ namespace MBW.App.ViewModels
                 WorkspaceName = name;
                 StatusWorkspaceName = name;
                 WorkspaceSavedText = saved
-                    ? $"Workspace saved · {DateTime.Now:HH:mm}"
+                    ? $"Saved · {DateTime.Now:HH:mm}"
                     : WorkspaceSavedText;
             }
             else

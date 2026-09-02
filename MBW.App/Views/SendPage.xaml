@@ -39,13 +39,19 @@
         <Grid Grid.Row="2"
               Margin="0,32,0,0"
               ColumnSpacing="24"
+              MinHeight="0"
               Visibility="{Binding FormVisibility}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="320" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <StackPanel Grid.Column="0" Spacing="16" Margin="0,4,0,0">
+            <ScrollViewer Grid.Column="0"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          VerticalAlignment="Stretch"
+                          Margin="0,4,0,0">
+                <StackPanel Spacing="16" Margin="0,0,20,12">
                 <StackPanel Spacing="8">
                     <TextBlock Text="Email column"
                                FontSize="12"
@@ -100,19 +106,83 @@
                                    TextWrapping="WrapWholeWords"
                                    Opacity="0.85" />
                     </StackPanel>
+
+                    <StackPanel Spacing="8" Margin="0,4,0,0">
+                        <TextBlock Text="Send range"
+                                   FontSize="12"
+                                   FontWeight="SemiBold" />
+                        <RadioButton Content="Send all recipients"
+                                     IsChecked="{Binding SendAllRecipients, Mode=TwoWay}"
+                                     GroupName="SendRangeGroup" />
+                        <RadioButton Content="Send range"
+                                     IsChecked="{Binding SendCustomRange, Mode=TwoWay}"
+                                     GroupName="SendRangeGroup" />
+                        <Grid ColumnSpacing="8"
+                              Visibility="{Binding SendRangeFieldsVisibility}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0"
+                                       Text="From"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,4,0" />
+                            <controls:CompactNumberBox Grid.Column="1"
+                                                       Value="{Binding RangeFrom, Mode=TwoWay}"
+                                                       Minimum="1"
+                                                       Maximum="{Binding MaxRecipientCount}"
+                                                       SmallChange="1"
+                                                       LargeChange="10" />
+                            <TextBlock Grid.Column="2"
+                                       Text="To"
+                                       VerticalAlignment="Center"
+                                       Margin="8,0,4,0" />
+                            <controls:CompactNumberBox Grid.Column="3"
+                                                       Value="{Binding RangeTo, Mode=TwoWay}"
+                                                       Minimum="1"
+                                                       Maximum="{Binding MaxRecipientCount}"
+                                                       SmallChange="1"
+                                                       LargeChange="10" />
+                        </Grid>
+                        <TextBlock Text="{Binding RangeSummary}"
+                                   FontSize="11"
+                                   Foreground="{ThemeResource TextFillColorSecondary}" />
+                        <TextBlock Text="Delay"
+                                   FontSize="12"
+                                   FontWeight="SemiBold"
+                                   Margin="0,4,0,0" />
+                        <Grid ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <controls:CompactNumberBox Grid.Column="0"
+                                                       Value="{Binding DelaySeconds, Mode=TwoWay}"
+                                                       Minimum="0"
+                                                       Maximum="3600"
+                                                       SmallChange="1"
+                                                       LargeChange="5" />
+                            <TextBlock Grid.Column="1"
+                                       Text="seconds"
+                                       VerticalAlignment="Center"
+                                       Foreground="{ThemeResource TextFillColorSecondary}" />
+                        </Grid>
+                    </StackPanel>
                 </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
 
-                <Button Content="Send now"
-                        Style="{StaticResource AccentButtonStyle}"
-                        Command="{Binding SendNowCommand}"
-                        HorizontalAlignment="Stretch" />
-            </StackPanel>
-
-            <Grid Grid.Column="1" RowSpacing="12" Margin="0,4,0,0">
+            <Grid Grid.Column="1"
+                  RowSpacing="12"
+                  Margin="0,4,0,0"
+                  MinHeight="0"
+                  VerticalAlignment="Stretch">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
+                    <RowDefinition Height="*" MinHeight="160" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
@@ -135,7 +205,7 @@
                 </StackPanel>
 
                 <Border Grid.Row="2"
-                        MinHeight="360"
+                        MinHeight="160"
                         Background="{ThemeResource LayerFillColorDefaultBrush}"
                         BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
                         BorderThickness="1"
@@ -144,18 +214,32 @@
                               DefaultBackgroundColor="White" />
                 </Border>
 
-                <StackPanel Grid.Row="3"
-                            Orientation="Horizontal"
-                            Spacing="8">
-                    <Button Content="Previous row"
+                <Grid Grid.Row="3" ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Button Grid.Column="0"
+                            Content="Previous row"
                             Command="{Binding PreviousRowCommand}" />
-                    <Button Content="Next row"
+                    <Button Grid.Column="1"
+                            Content="Next row"
                             Command="{Binding NextRowCommand}" />
-                    <ProgressRing IsActive="{Binding IsBusy}"
+                    <ProgressRing Grid.Column="2"
+                                  IsActive="{Binding IsBusy}"
                                   Width="20"
                                   Height="20"
+                                  HorizontalAlignment="Left"
+                                  VerticalAlignment="Center"
                                   Visibility="{Binding BusyVisibility}" />
-                </StackPanel>
+                    <Button Grid.Column="3"
+                            Content="Send now"
+                            Style="{StaticResource AccentButtonStyle}"
+                            Command="{Binding SendNowCommand}"
+                            MinWidth="100" />
+                </Grid>
             </Grid>
         </Grid>
 

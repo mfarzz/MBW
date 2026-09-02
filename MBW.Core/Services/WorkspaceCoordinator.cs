@@ -194,7 +194,10 @@ namespace MBW.Core.Services
                 EmailColumn = configuration.EmailColumn,
                 IncludeSharedAttachments = configuration.IncludeSharedAttachments,
                 IncludeIndividualAttachments = configuration.IncludeIndividualAttachments,
-                AttachmentRenamePattern = configuration.AttachmentRenamePattern ?? string.Empty
+                AttachmentRenamePattern = configuration.AttachmentRenamePattern ?? string.Empty,
+                SendAllRecipients = configuration.SendAllRecipients,
+                SendRangeFrom = configuration.SendRangeFrom,
+                SendRangeTo = configuration.SendRangeTo
             };
             Current.ModifiedAt = DateTimeOffset.UtcNow;
         }

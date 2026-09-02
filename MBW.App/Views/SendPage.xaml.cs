@@ -23,16 +23,16 @@ namespace MBW.App.Views
             _viewModel.HtmlPreviewChanged += ViewModel_HtmlPreviewChanged;
         }
 
-        protected override void OnNavigatedTo(NavigationEventArgs e)
+        protected override async void OnNavigatedTo(NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
-            _ = _viewModel.EnsureLoadedAsync(force: true);
+            await _viewModel.EnsureLoadedAsync();
         }
 
-        protected override void OnNavigatedFrom(NavigationEventArgs e)
+        protected override async void OnNavigatedFrom(NavigationEventArgs e)
         {
+            await _viewModel.PersistSettingsAsync();
             base.OnNavigatedFrom(e);
-            _ = _viewModel.PersistSettingsAsync();
         }
 
         public Task ReloadAsync() => _viewModel.EnsureLoadedAsync(force: true);

@@ -131,7 +131,10 @@ namespace MBW.Infrastructure.Storage
                     EmailColumn = model.Configuration.EmailColumn,
                     IncludeSharedAttachments = model.Configuration.IncludeSharedAttachments,
                     IncludeIndividualAttachments = model.Configuration.IncludeIndividualAttachments,
-                    AttachmentRenamePattern = model.Configuration.AttachmentRenamePattern
+                    AttachmentRenamePattern = model.Configuration.AttachmentRenamePattern,
+                    SendAllRecipients = model.Configuration.SendAllRecipients,
+                    SendRangeFrom = model.Configuration.SendRangeFrom,
+                    SendRangeTo = model.Configuration.SendRangeTo
                 } : null;
                 Metadata = model.Metadata != null ? new Dictionary<string, string>(model.Metadata) : null;
                 CreatedAt = model.CreatedAt;
@@ -180,7 +183,10 @@ namespace MBW.Infrastructure.Storage
                         EmailColumn = Configuration.EmailColumn,
                         IncludeSharedAttachments = Configuration.IncludeSharedAttachments,
                         IncludeIndividualAttachments = Configuration.IncludeIndividualAttachments,
-                        AttachmentRenamePattern = Configuration.AttachmentRenamePattern ?? string.Empty
+                        AttachmentRenamePattern = Configuration.AttachmentRenamePattern ?? string.Empty,
+                        SendAllRecipients = Configuration.SendAllRecipients,
+                        SendRangeFrom = Configuration.SendRangeFrom,
+                        SendRangeTo = Configuration.SendRangeTo
                     };
                 }
 
@@ -216,6 +222,9 @@ namespace MBW.Infrastructure.Storage
             public bool IncludeSharedAttachments { get; set; } = true;
             public bool IncludeIndividualAttachments { get; set; } = true;
             public string AttachmentRenamePattern { get; set; } = string.Empty;
+            public bool SendAllRecipients { get; set; } = true;
+            public int SendRangeFrom { get; set; } = 1;
+            public int SendRangeTo { get; set; }
         }
 
         private class AttachmentConfigurationDto

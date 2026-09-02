@@ -1,5 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using MBW.App.Composition;
+using MBW.App.Platform;
 using MBW.Core.Interfaces;
 using MBW.Core.Models;
 using MBW.Core.Services;
@@ -9,6 +11,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace MBW.App.ViewModels
@@ -19,6 +22,8 @@ namespace MBW.App.ViewModels
         private readonly WorkspaceCoordinator _workspaceCoordinator;
         private readonly IAttachmentService _attachmentService;
         private readonly SmtpSettingsCoordinator _smtpCoordinator;
+        private readonly IEmailSender _emailSender;
+        private readonly WinUiSendGateway _sendGateway;
 
         private List<RecipientRow> _recipients = new();
         private Dictionary<long, string?> _individualMatches = new();
@@ -30,12 +35,16 @@ namespace MBW.App.ViewModels
             IExcelImporter excelImporter,
             WorkspaceCoordinator workspaceCoordinator,
             IAttachmentService attachmentService,
-            SmtpSettingsCoordinator smtpCoordinator)
+            SmtpSettingsCoordinator smtpCoordinator,
+            IEmailSender emailSender,
+            WinUiSendGateway sendGateway)
         {
             _excelImporter = excelImporter;
             _workspaceCoordinator = workspaceCoordinator;
             _attachmentService = attachmentService;
             _smtpCoordinator = smtpCoordinator;
+            _emailSender = emailSender;
+            _sendGateway = sendGateway;
             _workspaceCoordinator.Changed += (_, _) => OnWorkspaceChanged();
         }
 
@@ -57,7 +66,24 @@ namespace MBW.App.ViewModels
         public partial string RenamePreviewLine { get; set; } = string.Empty;
 
         [ObservableProperty]
+        public partial double RangeFrom { get; set; } = 1;
+
+        [ObservableProperty]
+        public partial double RangeTo { get; set; } = 1;
+
+        [ObservableProperty]
+        public partial double DelaySeconds { get; set; } = 1;
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(SendCustomRange), nameof(SendRangeFieldsVisibility), nameof(RangeSummary))]
+        public partial bool SendAllRecipients { get; set; } = true;
+
+        [ObservableProperty]
         public partial int CurrentRowIndex { get; set; }
+
+        private bool _suppressSave;
+        private bool _isLoading;
+        private bool _suppressWorkspaceReload;
 
         [ObservableProperty]
         public partial string FromLine { get; set; } = "From: —";
@@ -85,6 +111,9 @@ namespace MBW.App.ViewModels
 
         [ObservableProperty]
         public partial bool IsBusy { get; set; }
+
+        [ObservableProperty]
+        public partial bool IsSending { get; set; }
 
         public bool HasWorkspace => _workspaceCoordinator.HasWorkspace;
 
@@ -117,24 +146,41 @@ namespace MBW.App.ViewModels
         public Visibility RenamePreviewVisibility =>
             string.IsNullOrWhiteSpace(RenamePreviewLine) ? Visibility.Collapsed : Visibility.Visible;
 
-        public int RecipientCount => _recipients.Count;
-
-        public bool CanGoPrevious => !IsBusy && CurrentRowIndex > 0;
-
-        public bool CanGoNext => !IsBusy && CurrentRowIndex < RecipientCount - 1;
-
-        public bool CanSendNow => !IsBusy && GateMessage is null && RecipientCount > 0;
-
-        public string RenamePatternPlaceholder
+        public bool SendCustomRange
         {
-            get
+            get => !SendAllRecipients;
+            set
             {
-                var keyColumn = _workspaceCoordinator.GetAttachmentConfiguration().Link.KeyColumn;
-                return string.IsNullOrWhiteSpace(keyColumn)
-                    ? "Surat_{Column}.pdf"
-                    : $"Surat_{{{keyColumn}}}.pdf";
+                if (value == SendCustomRange)
+                {
+                    return;
+                }
+
+                SendAllRecipients = !value;
             }
         }
+
+        public Visibility SendRangeFieldsVisibility =>
+            SendAllRecipients ? Visibility.Collapsed : Visibility.Visible;
+
+        public int RecipientCount => _recipients.Count;
+
+        public double MaxRecipientCount => Math.Max(RecipientCount, 1);
+
+        public string RangeSummary =>
+            RecipientCount == 0
+                ? string.Empty
+                : SendAllRecipients
+                    ? $"All {RecipientCount:N0} recipient(s)"
+                    : $"of {RecipientCount:N0} recipient(s)";
+
+        public bool CanGoPrevious => !IsBusy && !IsSending && CurrentRowIndex > 0;
+
+        public bool CanGoNext => !IsBusy && !IsSending && CurrentRowIndex < RecipientCount - 1;
+
+        public bool CanSendNow => !IsBusy && !IsSending && GateMessage is null && RecipientCount > 0;
+
+        public string RenamePatternPlaceholder => "Enter file name pattern";
 
         public event EventHandler<string>? HtmlPreviewChanged;
 
@@ -150,11 +196,11 @@ namespace MBW.App.ViewModels
 
             if (!force && RecipientCount > 0 && !IsBusy)
             {
+                ApplySettingsFromConfig(_workspaceCoordinator.GetSendConfiguration());
                 _template = GetCurrentTemplate();
                 Subject = _template.Subject;
-                var sendConfig = _workspaceCoordinator.GetSendConfiguration();
-                AttachmentRenamePattern = sendConfig.AttachmentRenamePattern ?? string.Empty;
-                OnPropertyChanged(nameof(RenamePatternPlaceholder));
+                OnPropertyChanged(nameof(MaxRecipientCount));
+                OnPropertyChanged(nameof(RangeSummary));
                 RefreshPreview();
                 return;
             }
@@ -164,29 +210,83 @@ namespace MBW.App.ViewModels
 
         public async Task PersistSettingsAsync()
         {
-            if (!_workspaceCoordinator.HasWorkspace)
+            if (!_workspaceCoordinator.HasWorkspace || _suppressSave)
             {
                 return;
             }
 
-            var current = _workspaceCoordinator.GetSendConfiguration();
-            _workspaceCoordinator.UpdateSendConfiguration(new SendConfiguration
+            try
             {
-                SmtpAccountId = current.SmtpAccountId,
-                DelayMilliseconds = current.DelayMilliseconds,
-                Concurrency = current.Concurrency,
-                FromName = current.FromName,
-                FromEmail = current.FromEmail,
-                TestMode = current.TestMode,
-                EmailColumn = SelectedEmailColumn ?? string.Empty,
-                IncludeSharedAttachments = IncludeSharedAttachments,
-                IncludeIndividualAttachments = IncludeIndividualAttachments,
-                AttachmentRenamePattern = AttachmentRenamePattern ?? string.Empty
-            });
+                _suppressWorkspaceReload = true;
+                _suppressSave = true;
 
-            SyncTemplateSubjectToWorkspace();
+                var current = _workspaceCoordinator.GetSendConfiguration();
+                var (rangeFrom, rangeTo) = GetPersistedSendRange();
+                _workspaceCoordinator.UpdateSendConfiguration(new SendConfiguration
+                {
+                    SmtpAccountId = current.SmtpAccountId,
+                    Concurrency = current.Concurrency,
+                    FromName = current.FromName,
+                    FromEmail = current.FromEmail,
+                    TestMode = false,
+                    EmailColumn = SelectedEmailColumn ?? string.Empty,
+                    IncludeSharedAttachments = IncludeSharedAttachments,
+                    IncludeIndividualAttachments = IncludeIndividualAttachments,
+                    AttachmentRenamePattern = AttachmentRenamePattern ?? string.Empty,
+                    SendAllRecipients = SendAllRecipients,
+                    SendRangeFrom = rangeFrom,
+                    SendRangeTo = rangeTo,
+                    DelayMilliseconds = (int)Math.Round(Math.Max(0, DelaySeconds) * 1000)
+                });
 
-            await _workspaceCoordinator.SaveCurrentAsync();
+                SyncTemplateSubjectToWorkspace();
+
+                await _workspaceCoordinator.SaveCurrentAsync();
+            }
+            finally
+            {
+                _suppressSave = false;
+                _suppressWorkspaceReload = false;
+            }
+        }
+
+        private void ApplySettingsFromConfig(SendConfiguration sendConfig)
+        {
+            IncludeSharedAttachments = sendConfig.IncludeSharedAttachments;
+            IncludeIndividualAttachments = sendConfig.IncludeIndividualAttachments;
+            AttachmentRenamePattern = sendConfig.AttachmentRenamePattern ?? string.Empty;
+
+            if (!string.IsNullOrWhiteSpace(sendConfig.EmailColumn)
+                && EmailColumns.Any(column => string.Equals(column, sendConfig.EmailColumn, StringComparison.OrdinalIgnoreCase)))
+            {
+                SelectedEmailColumn = EmailColumns.First(column =>
+                    string.Equals(column, sendConfig.EmailColumn, StringComparison.OrdinalIgnoreCase));
+            }
+
+            ApplySendRangeFromConfig(sendConfig);
+        }
+
+        private void ScheduleSave()
+        {
+            if (_suppressSave || _isLoading || !_workspaceCoordinator.HasWorkspace)
+            {
+                return;
+            }
+
+            AppServices.Shell?.NotifyWorkspaceUnsaved();
+            _ = PersistSettingsAsync();
+        }
+
+        private (int From, int To) GetPersistedSendRange()
+        {
+            if (SendAllRecipients || RecipientCount == 0)
+            {
+                var max = Math.Max(RecipientCount, 1);
+                return (1, max);
+            }
+
+            ClampSendRange();
+            return ((int)Math.Round(RangeFrom), (int)Math.Round(RangeTo));
         }
 
         private void SyncTemplateSubjectToWorkspace()
@@ -215,31 +315,66 @@ namespace MBW.App.ViewModels
         partial void OnSelectedEmailColumnChanged(string? value)
         {
             RefreshPreview();
-            _ = PersistSettingsAsync();
+            ScheduleSave();
         }
 
         partial void OnIncludeSharedAttachmentsChanged(bool value)
         {
             RefreshPreview();
-            _ = PersistSettingsAsync();
+            ScheduleSave();
         }
 
         partial void OnIncludeIndividualAttachmentsChanged(bool value)
         {
             RefreshPreview();
-            _ = PersistSettingsAsync();
+            ScheduleSave();
         }
 
         partial void OnAttachmentRenamePatternChanged(string value)
         {
             RefreshPreview();
-            _ = PersistSettingsAsync();
+            ScheduleSave();
         }
 
         partial void OnSubjectChanged(string value)
         {
             SyncTemplateSubjectToWorkspace();
-            _ = PersistSettingsAsync();
+            ScheduleSave();
+        }
+
+        partial void OnRangeFromChanged(double value)
+        {
+            ClampSendRange();
+            ScheduleSave();
+        }
+
+        partial void OnRangeToChanged(double value)
+        {
+            ClampSendRange();
+            ScheduleSave();
+        }
+
+        partial void OnDelaySecondsChanged(double value)
+        {
+            if (value < 0)
+            {
+                DelaySeconds = 0;
+                return;
+            }
+
+            ScheduleSave();
+        }
+
+        partial void OnSendAllRecipientsChanged(bool value)
+        {
+            if (value && RecipientCount > 0)
+            {
+                RangeFrom = 1;
+                RangeTo = RecipientCount;
+            }
+
+            OnPropertyChanged(nameof(RangeSummary));
+            ScheduleSave();
         }
 
         partial void OnCurrentRowIndexChanged(int value)
@@ -249,6 +384,16 @@ namespace MBW.App.ViewModels
         }
 
         partial void OnIsBusyChanged(bool value)
+        {
+            NotifyCommandState();
+        }
+
+        partial void OnIsSendingChanged(bool value)
+        {
+            NotifyCommandState();
+        }
+
+        private void NotifyCommandState()
         {
             NotifyNavigationState();
             OnPropertyChanged(nameof(CanSendNow));
@@ -283,12 +428,104 @@ namespace MBW.App.ViewModels
             }
 
             await PersistSettingsAsync();
-            StatusMessage = "Sending is not yet implemented (STEP 8).";
+
+            var (from, to, count) = GetValidatedSendRange();
+            var delaySeconds = (int)Math.Round(Math.Max(0, DelaySeconds));
+            if (!await _sendGateway.ConfirmSendAsync(count, from, to, delaySeconds))
+            {
+                return;
+            }
+
+            try
+            {
+                IsSending = true;
+                await _sendGateway.RunProgressAsync(ExecuteSendAsync);
+                StatusMessage = "Send finished.";
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"Send failed: {ex.Message}";
+            }
+            finally
+            {
+                IsSending = false;
+            }
+        }
+
+        private async Task ExecuteSendAsync(SendProgressViewModel progress, CancellationToken cancellationToken)
+        {
+            var (from, to, total) = GetValidatedSendRange();
+            var delaySeconds = (int)Math.Round(Math.Max(0, DelaySeconds));
+            progress.Reset();
+
+            var rows = new List<(int RowNumber, string Email)>();
+            for (var rowNumber = from; rowNumber <= to; rowNumber++)
+            {
+                var recipient = _recipients[rowNumber - 1];
+                var email = GetRecipientEmail(recipient, SelectedEmailColumn) ?? "(no email)";
+                rows.Add((rowNumber, email));
+            }
+
+            await progress.InitializeEntriesAsync(rows);
+            await progress.ReportAsync(0, total);
+
+            var sendConfig = _workspaceCoordinator.GetSendConfiguration();
+            var template = new EmailTemplate(Subject, GetCurrentTemplate().HtmlBody);
+
+            var sent = 0;
+            try
+            {
+                for (var rowNumber = from; rowNumber <= to; rowNumber++)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    var recipient = _recipients[rowNumber - 1];
+                    var email = GetRecipientEmail(recipient, SelectedEmailColumn);
+                    if (string.IsNullOrWhiteSpace(email))
+                    {
+                        await progress.SetStatusAsync(rowNumber, SendProgressStatus.Skipped, "No email address");
+                        continue;
+                    }
+
+                    await progress.SetStatusAsync(rowNumber, SendProgressStatus.Sending);
+
+                    var attachments = BuildAttachmentsForRecipient(recipient);
+                    var result = await _emailSender.SendAsync(recipient, template, sendConfig, attachments, cancellationToken);
+
+                    if (result.Success)
+                    {
+                        await progress.SetStatusAsync(rowNumber, SendProgressStatus.Succeeded);
+                        sent++;
+                    }
+                    else
+                    {
+                        await progress.SetStatusAsync(rowNumber, SendProgressStatus.Failed, result.ErrorMessage);
+                    }
+
+                    await progress.ReportAsync(sent, total);
+
+                    if (rowNumber < to && delaySeconds > 0)
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(delaySeconds), cancellationToken);
+                    }
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                await progress.MarkIncompleteAsCancelledAsync();
+                throw;
+            }
         }
 
         private void OnWorkspaceChanged()
         {
+            if (_suppressWorkspaceReload)
+            {
+                return;
+            }
+
             NotifyGateState();
+            _ = EnsureLoadedAsync(force: true);
         }
 
         private async Task LoadAsync()
@@ -302,16 +539,13 @@ namespace MBW.App.ViewModels
 
             try
             {
+                _isLoading = true;
                 IsBusy = true;
                 StatusMessage = "Loading send preview...";
                 _template = GetCurrentTemplate();
                 Subject = _template.Subject;
 
                 var sendConfig = _workspaceCoordinator.GetSendConfiguration();
-                IncludeSharedAttachments = sendConfig.IncludeSharedAttachments;
-                IncludeIndividualAttachments = sendConfig.IncludeIndividualAttachments;
-                AttachmentRenamePattern = sendConfig.AttachmentRenamePattern ?? string.Empty;
-                OnPropertyChanged(nameof(RenamePatternPlaceholder));
 
                 var headers = await _excelImporter.GetHeadersAsync(
                     dataPath,
@@ -323,8 +557,6 @@ namespace MBW.App.ViewModels
                 {
                     EmailColumns.Add(header);
                 }
-
-                SelectedEmailColumn = ResolveInitialEmailColumn(sendConfig.EmailColumn, headers);
 
                 _recipients = new List<RecipientRow>();
                 await foreach (var row in _excelImporter.ReadAllAsync(
@@ -344,6 +576,10 @@ namespace MBW.App.ViewModels
 
                 await LoadAttachmentIndexAsync();
                 UpdateAttachmentSummaries();
+                ApplySettingsFromConfig(sendConfig);
+                SelectedEmailColumn = ResolveInitialEmailColumn(sendConfig.EmailColumn, headers);
+                OnPropertyChanged(nameof(MaxRecipientCount));
+                OnPropertyChanged(nameof(RangeSummary));
                 CurrentRowIndex = 0;
                 RefreshPreview();
                 StatusMessage = $"{_recipients.Count:N0} recipient(s) loaded.";
@@ -354,11 +590,74 @@ namespace MBW.App.ViewModels
             }
             finally
             {
+                _isLoading = false;
                 IsBusy = false;
-                NotifyNavigationState();
-                OnPropertyChanged(nameof(CanSendNow));
-                SendNowCommand.NotifyCanExecuteChanged();
+                NotifyCommandState();
             }
+        }
+
+        private void ApplySendRangeFromConfig(SendConfiguration config)
+        {
+            SendAllRecipients = config.SendAllRecipients;
+            var max = Math.Max(RecipientCount, 1);
+            RangeFrom = config.SendRangeFrom > 0 ? Math.Min(config.SendRangeFrom, max) : 1;
+            RangeTo = config.SendRangeTo > 0 ? Math.Min(config.SendRangeTo, max) : max;
+            DelaySeconds = Math.Max(0, config.DelayMilliseconds / 1000.0);
+
+            if (SendAllRecipients && RecipientCount > 0)
+            {
+                RangeFrom = 1;
+                RangeTo = RecipientCount;
+            }
+
+            ClampSendRange();
+            OnPropertyChanged(nameof(SendCustomRange));
+            OnPropertyChanged(nameof(SendRangeFieldsVisibility));
+            OnPropertyChanged(nameof(RangeSummary));
+        }
+
+        private void ClampSendRange()
+        {
+            if (RecipientCount == 0)
+            {
+                RangeFrom = 1;
+                RangeTo = 1;
+                return;
+            }
+
+            var max = RecipientCount;
+            if (RangeFrom < 1)
+            {
+                RangeFrom = 1;
+            }
+
+            if (RangeFrom > max)
+            {
+                RangeFrom = max;
+            }
+
+            if (RangeTo < RangeFrom)
+            {
+                RangeTo = RangeFrom;
+            }
+
+            if (RangeTo > max)
+            {
+                RangeTo = max;
+            }
+        }
+
+        private (int From, int To, int Count) GetValidatedSendRange()
+        {
+            if (SendAllRecipients && RecipientCount > 0)
+            {
+                return (1, RecipientCount, RecipientCount);
+            }
+
+            ClampSendRange();
+            var from = (int)Math.Round(RangeFrom);
+            var to = (int)Math.Round(RangeTo);
+            return (from, to, Math.Max(0, to - from + 1));
         }
 
         private EmailTemplate GetCurrentTemplate()
@@ -394,6 +693,31 @@ namespace MBW.App.ViewModels
             if (!EmailColumns.Contains(SelectedEmailColumn))
             {
                 error = "The selected email column is no longer available.";
+                return false;
+            }
+
+            var (from, to, _) = GetValidatedSendRange();
+            if (from < 1 || to > RecipientCount || from > to)
+            {
+                error = "Enter a valid send range.";
+                return false;
+            }
+
+            if (DelaySeconds < 0)
+            {
+                error = "Delay cannot be negative.";
+                return false;
+            }
+
+            if (!_smtpCoordinator.Current.IsConfigured)
+            {
+                error = "Configure SMTP settings first.";
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(_smtpCoordinator.Current.GetSenderEmail()))
+            {
+                error = "Set a from email in SMTP settings.";
                 return false;
             }
 
@@ -592,7 +916,56 @@ namespace MBW.App.ViewModels
                 .LastOrDefault()?
                 .Trim();
 
-            return string.IsNullOrWhiteSpace(sanitized) ? originalFileName : sanitized;
+            if (string.IsNullOrWhiteSpace(sanitized))
+            {
+                return originalFileName;
+            }
+
+            if (!Path.HasExtension(sanitized) && Path.HasExtension(originalFileName))
+            {
+                sanitized += Path.GetExtension(originalFileName);
+            }
+
+            return sanitized;
+        }
+
+        private IReadOnlyList<SendEmailAttachment> BuildAttachmentsForRecipient(RecipientRow recipient)
+        {
+            var attachments = new List<SendEmailAttachment>();
+
+            if (IncludeSharedAttachments && _sharedFiles.Count > 0)
+            {
+                var sharedDir = _workspaceCoordinator.GetSharedAttachmentsDirectory();
+                foreach (var fileName in _sharedFiles)
+                {
+                    var filePath = Path.Combine(sharedDir, fileName);
+                    if (File.Exists(filePath))
+                    {
+                        attachments.Add(new SendEmailAttachment(filePath, fileName));
+                    }
+                }
+            }
+
+            if (IncludeIndividualAttachments
+                && _individualMatches.TryGetValue(recipient.RowNumber, out var individualFile)
+                && !string.IsNullOrWhiteSpace(individualFile))
+            {
+                var link = _workspaceCoordinator.GetAttachmentConfiguration().Link;
+                if (!string.IsNullOrWhiteSpace(link.IndividualFolderName))
+                {
+                    var folderPath = Path.Combine(
+                        _workspaceCoordinator.GetIndividualAttachmentsDirectory(),
+                        link.IndividualFolderName);
+                    var filePath = Path.Combine(folderPath, individualFile);
+                    if (File.Exists(filePath))
+                    {
+                        var displayName = ResolveAttachmentDisplayName(individualFile, recipient);
+                        attachments.Add(new SendEmailAttachment(filePath, displayName));
+                    }
+                }
+            }
+
+            return attachments;
         }
 
         private void NotifyNavigationState()

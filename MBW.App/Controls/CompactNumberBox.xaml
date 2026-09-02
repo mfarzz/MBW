@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="MBW.App.Controls.CompactNumberBox"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    HorizontalAlignment="Stretch">
+
+    <Grid ColumnSpacing="0">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="18" />
+        </Grid.ColumnDefinitions>
+
+        <NumberBox x:Name="PartNumberBox"
+                   Grid.Column="0"
+                   Value="{x:Bind Value, Mode=TwoWay}"
+                   Minimum="{x:Bind Minimum, Mode=OneWay}"
+                   Maximum="{x:Bind Maximum, Mode=OneWay}"
+                   SmallChange="{x:Bind SmallChange, Mode=OneWay}"
+                   LargeChange="{x:Bind LargeChange, Mode=OneWay}"
+                   SpinButtonPlacementMode="Hidden"
+                   HorizontalAlignment="Stretch" />
+
+        <StackPanel Grid.Column="1"
+                    Spacing="0"
+                    VerticalAlignment="Stretch">
+            <Button x:Name="UpButton"
+                    Padding="0"
+                    MinWidth="18"
+                    Height="16"
+                    HorizontalAlignment="Stretch"
+                    Click="UpButton_Click"
+                    ToolTipService.ToolTip="Increase">
+                <FontIcon Glyph="&#xE70E;" FontSize="8" />
+            </Button>
+            <Button x:Name="DownButton"
+                    Padding="0"
+                    MinWidth="18"
+                    Height="16"
+                    HorizontalAlignment="Stretch"
+                    Click="DownButton_Click"
+                    ToolTipService.ToolTip="Decrease">
+                <FontIcon Glyph="&#xE70D;" FontSize="8" />
+            </Button>
+        </StackPanel>
+    </Grid>
+</UserControl>

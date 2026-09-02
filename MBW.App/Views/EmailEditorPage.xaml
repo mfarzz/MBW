@@ -624,10 +624,10 @@
                                     <FontIcon Glyph="&#xE724;" FontSize="20" HorizontalAlignment="Center" Foreground="{ThemeResource AccentFillColorDefaultBrush}" />
                                     <TextBlock Text="Send" FontSize="10" HorizontalAlignment="Center" Foreground="{ThemeResource AccentFillColorDefaultBrush}" FontWeight="SemiBold" />
                                 </StackPanel>
-                            </Button>
-                        </StackPanel>
+                        </Button>
+                    </StackPanel>
                         <TextBlock Grid.Row="2" Text="Send" Style="{StaticResource RibbonGroupLabelStyle}" Height="{StaticResource RibbonGroupLabelHeight}" />
-                    </Grid>
+                </Grid>
 
                 </StackPanel>
             </ScrollViewer>
