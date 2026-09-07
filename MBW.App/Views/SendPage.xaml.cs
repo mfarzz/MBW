@@ -1,4 +1,5 @@
 using MBW.App.Composition;
+using MBW.App.Shell;
 using MBW.App.ViewModels;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -8,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace MBW.App.Views
 {
-    public sealed partial class SendPage : Page
+    public sealed partial class SendPage : Page, IShellRefreshable
     {
         private readonly SendPageViewModel _viewModel;
 
@@ -36,6 +37,8 @@ namespace MBW.App.Views
         }
 
         public Task ReloadAsync() => _viewModel.EnsureLoadedAsync(force: true);
+
+        public Task RefreshAsync() => ReloadAsync();
 
         private void RenameVariablePicker_SelectionPicked(object sender, string column)
         {

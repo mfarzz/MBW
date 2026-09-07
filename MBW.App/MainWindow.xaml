@@ -14,6 +14,22 @@
             <KeyboardAccelerator Key="O" Modifiers="Control" Invoked="FileOpenWorkspace_Invoked" />
             <KeyboardAccelerator Key="S" Modifiers="Control" Invoked="FileSaveWorkspace_Invoked" />
             <KeyboardAccelerator Key="F4" Modifiers="Menu" Invoked="FileExit_Invoked" />
+            <KeyboardAccelerator Key="Z" Modifiers="Control" Invoked="EditUndo_Invoked" />
+            <KeyboardAccelerator Key="Y" Modifiers="Control" Invoked="EditRedo_Invoked" />
+            <KeyboardAccelerator Key="X" Modifiers="Control" Invoked="EditCut_Invoked" />
+            <KeyboardAccelerator Key="C" Modifiers="Control" Invoked="EditCopy_Invoked" />
+            <KeyboardAccelerator Key="V" Modifiers="Control" Invoked="EditPaste_Invoked" />
+            <KeyboardAccelerator Key="V" Modifiers="Control,Shift" Invoked="EditPastePlain_Invoked" />
+            <KeyboardAccelerator Key="A" Modifiers="Control" Invoked="EditSelectAll_Invoked" />
+            <KeyboardAccelerator Key="B" Modifiers="Control" Invoked="ViewSidebar_Invoked" />
+            <KeyboardAccelerator Key="Number1" Modifiers="Control" Invoked="ViewEmail_Invoked" />
+            <KeyboardAccelerator Key="Number2" Modifiers="Control" Invoked="ViewDatabase_Invoked" />
+            <KeyboardAccelerator Key="Number3" Modifiers="Control" Invoked="ViewAttachments_Invoked" />
+            <KeyboardAccelerator Key="Number4" Modifiers="Control" Invoked="ViewConfiguration_Invoked" />
+            <KeyboardAccelerator Key="Number5" Modifiers="Control" Invoked="ViewSend_Invoked" />
+            <KeyboardAccelerator Key="P" Modifiers="Control,Shift" Invoked="ViewPreview_Invoked" />
+            <KeyboardAccelerator Key="F5" Invoked="ViewRefresh_Invoked" />
+            <KeyboardAccelerator Key="F1" Invoked="HelpDocumentation_Invoked" />
         </Grid.KeyboardAccelerators>
         <Grid.RowDefinitions>
             <RowDefinition Height="{StaticResource ShellTitleBarHeight}" />
@@ -31,9 +47,10 @@
             </Grid.ColumnDefinitions>
 
             <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" Margin="12,0,10,0">
-                <Border Width="20" Height="20" CornerRadius="3" Background="{ThemeResource AccentFillColorDefaultBrush}">
-                    <TextBlock Text="M" FontSize="10" FontWeight="Bold" Foreground="{ThemeResource TextOnAccentFillColorPrimary}" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                </Border>
+                <Image Source="Assets/AppIcon.png"
+                       Width="20"
+                       Height="20"
+                       Stretch="Uniform" />
                 <TextBlock Text="MBW" FontSize="13" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorPrimary}" VerticalAlignment="Center" />
             </StackPanel>
 
@@ -49,8 +66,38 @@
                         </MenuFlyout>
                     </Button.Flyout>
                 </Button>
-                <Button x:Name="EditMenuButton" Content="Edit" Style="{StaticResource SubtleButtonStyle}" Height="28" Padding="10,0" Click="TopMenuButton_Click" />
-                <Button x:Name="ViewMenuButton" Content="View" Style="{StaticResource SubtleButtonStyle}" Height="28" Padding="10,0" Click="TopMenuButton_Click" />
+                <Button x:Name="EditMenuButton" Content="Edit" Style="{StaticResource SubtleButtonStyle}" Height="28" Padding="10,0">
+                    <Button.Flyout>
+                        <MenuFlyout Placement="BottomEdgeAlignedLeft" Opening="EditMenuFlyout_Opening">
+                            <MenuFlyoutItem x:Name="EditUndoItem" Text="Undo" Click="EditUndo_Click" KeyboardAcceleratorTextOverride="Ctrl+Z" />
+                            <MenuFlyoutItem x:Name="EditRedoItem" Text="Redo" Click="EditRedo_Click" KeyboardAcceleratorTextOverride="Ctrl+Y" />
+                            <MenuFlyoutSeparator />
+                            <MenuFlyoutItem x:Name="EditCutItem" Text="Cut" Click="EditCut_Click" KeyboardAcceleratorTextOverride="Ctrl+X" />
+                            <MenuFlyoutItem x:Name="EditCopyItem" Text="Copy" Click="EditCopy_Click" KeyboardAcceleratorTextOverride="Ctrl+C" />
+                            <MenuFlyoutItem x:Name="EditPasteItem" Text="Paste" Click="EditPaste_Click" KeyboardAcceleratorTextOverride="Ctrl+V" />
+                            <MenuFlyoutItem x:Name="EditPastePlainItem" Text="Paste as plain text" Click="EditPastePlain_Click" KeyboardAcceleratorTextOverride="Ctrl+Shift+V" />
+                            <MenuFlyoutSeparator />
+                            <MenuFlyoutItem x:Name="EditSelectAllItem" Text="Select all" Click="EditSelectAll_Click" KeyboardAcceleratorTextOverride="Ctrl+A" />
+                        </MenuFlyout>
+                    </Button.Flyout>
+                </Button>
+                <Button x:Name="ViewMenuButton" Content="View" Style="{StaticResource SubtleButtonStyle}" Height="28" Padding="10,0">
+                    <Button.Flyout>
+                        <MenuFlyout Placement="BottomEdgeAlignedLeft" Opening="ViewMenuFlyout_Opening">
+                            <ToggleMenuFlyoutItem x:Name="ViewSidebarItem" Text="Sidebar" IsChecked="True" Click="ViewSidebar_Click" KeyboardAcceleratorTextOverride="Ctrl+B" />
+                            <ToggleMenuFlyoutItem x:Name="ViewStatusBarItem" Text="Status bar" IsChecked="True" Click="ViewStatusBar_Click" />
+                            <MenuFlyoutSeparator />
+                            <MenuFlyoutItem x:Name="ViewEmailItem" Text="Email" Click="ViewEmail_Click" KeyboardAcceleratorTextOverride="Ctrl+1" />
+                            <MenuFlyoutItem x:Name="ViewDatabaseItem" Text="Database" Click="ViewDatabase_Click" KeyboardAcceleratorTextOverride="Ctrl+2" />
+                            <MenuFlyoutItem x:Name="ViewAttachmentsItem" Text="Attachments" Click="ViewAttachments_Click" KeyboardAcceleratorTextOverride="Ctrl+3" />
+                            <MenuFlyoutItem x:Name="ViewConfigurationItem" Text="Configuration" Click="ViewConfiguration_Click" KeyboardAcceleratorTextOverride="Ctrl+4" />
+                            <MenuFlyoutItem x:Name="ViewSendItem" Text="Send" Click="ViewSend_Click" KeyboardAcceleratorTextOverride="Ctrl+5" />
+                            <MenuFlyoutSeparator />
+                            <MenuFlyoutItem x:Name="ViewPreviewItem" Text="Preview email" Click="ViewPreview_Click" KeyboardAcceleratorTextOverride="Ctrl+Shift+P" />
+                            <MenuFlyoutItem x:Name="ViewRefreshItem" Text="Refresh" Click="ViewRefresh_Click" KeyboardAcceleratorTextOverride="F5" />
+                        </MenuFlyout>
+                    </Button.Flyout>
+                </Button>
                 <Button x:Name="WorkspaceMenuButton" Content="Workspace" Style="{StaticResource SubtleButtonStyle}" Height="28" Padding="10,0">
                     <Button.Flyout>
                         <MenuFlyout Placement="BottomEdgeAlignedLeft">
@@ -63,7 +110,16 @@
                         </MenuFlyout>
                     </Button.Flyout>
                 </Button>
-                <Button x:Name="HelpMenuButton" Content="Help" Style="{StaticResource SubtleButtonStyle}" Height="28" Padding="10,0" Click="TopMenuButton_Click" />
+                <Button x:Name="HelpMenuButton" Content="Help" Style="{StaticResource SubtleButtonStyle}" Height="28" Padding="10,0">
+                    <Button.Flyout>
+                        <MenuFlyout Placement="BottomEdgeAlignedLeft">
+                            <MenuFlyoutItem Text="Documentation" Click="HelpDocumentation_Click" KeyboardAcceleratorTextOverride="F1" />
+                            <MenuFlyoutItem Text="Keyboard shortcuts" Click="HelpShortcuts_Click" />
+                            <MenuFlyoutSeparator />
+                            <MenuFlyoutItem Text="About MBW" Click="HelpAbout_Click" />
+                        </MenuFlyout>
+                    </Button.Flyout>
+                </Button>
             </StackPanel>
 
             <Button Grid.Column="3" x:Name="SmtpButton" Style="{StaticResource SubtleButtonStyle}" Padding="10,0" Margin="0,0,4,0" Click="SmtpButton_Click">

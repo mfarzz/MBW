@@ -1,4 +1,5 @@
 using MBW.App.Composition;
+using MBW.App.Shell;
 using MBW.App.ViewModels;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
@@ -6,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace MBW.App.Views
 {
-    public sealed partial class ConfigurationPage : Page
+    public sealed partial class ConfigurationPage : Page, IShellRefreshable
     {
         private readonly ConfigurationViewModel _viewModel;
 
@@ -26,5 +27,7 @@ namespace MBW.App.Views
         }
 
         public Task ReloadAsync() => _viewModel.EnsureLoadedAsync(force: true);
+
+        public Task RefreshAsync() => ReloadAsync();
     }
 }

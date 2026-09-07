@@ -1,4 +1,5 @@
 using MBW.App.Composition;
+using MBW.App.Shell;
 using MBW.App.ViewModels;
 using MBW.App.Views;
 using Microsoft.UI;
@@ -11,7 +12,10 @@ using Microsoft.UI.Xaml.Media;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.IO;
+using System.Reflection;
 using System.Threading.Tasks;
+using Windows.System;
 
 namespace MBW.App
 {
@@ -23,6 +27,8 @@ namespace MBW.App
         private readonly ShellViewModel _shellViewModel;
         private bool _isProjectOpen;
         private string _currentTag = "Welcome";
+        private bool _sidebarVisible = true;
+        private bool _statusBarVisible = true;
 
         public ShellViewModel ShellViewModel => _shellViewModel;
 
@@ -139,10 +145,6 @@ namespace MBW.App
             }
         }
 
-        private void TopMenuButton_Click(object sender, RoutedEventArgs e)
-        {
-        }
-
         private async void FileNewWorkspace_Click(object sender, RoutedEventArgs e)
         {
             await RunFileCommandAsync(_shellViewModel.NewWorkspaceAsync);
@@ -204,6 +206,439 @@ namespace MBW.App
         private void CloseFileMenuFlyout()
         {
             if (FindElement<Button>("FileMenuButton")?.Flyout is FlyoutBase flyout && flyout.IsOpen)
+            {
+                flyout.Hide();
+            }
+        }
+
+        private void EditMenuFlyout_Opening(object sender, object e) => RefreshEditMenuState();
+
+        private void RefreshEditMenuState()
+        {
+            var target = GetEditTarget();
+            SetMenuItemEnabled("EditUndoItem", target?.CanUndo == true);
+            SetMenuItemEnabled("EditRedoItem", target?.CanRedo == true);
+            SetMenuItemEnabled("EditCutItem", target?.CanCut == true);
+            SetMenuItemEnabled("EditCopyItem", target?.CanCopy == true);
+            SetMenuItemEnabled("EditPasteItem", target?.CanPaste == true);
+            SetMenuItemEnabled("EditPastePlainItem", target?.CanPastePlain == true);
+            SetMenuItemEnabled("EditSelectAllItem", target?.CanSelectAll == true);
+        }
+
+        private IShellEditTarget? GetEditTarget() => RootFrame.Content as IShellEditTarget;
+
+        private async void EditUndo_Click(object sender, RoutedEventArgs e) => await RunEditCommandAsync(t => t.CanUndo, t => t.UndoAsync());
+        private async void EditRedo_Click(object sender, RoutedEventArgs e) => await RunEditCommandAsync(t => t.CanRedo, t => t.RedoAsync());
+        private async void EditCut_Click(object sender, RoutedEventArgs e) => await RunEditCommandAsync(t => t.CanCut, t => t.CutAsync());
+        private async void EditCopy_Click(object sender, RoutedEventArgs e) => await RunEditCommandAsync(t => t.CanCopy, t => t.CopyAsync());
+        private async void EditPaste_Click(object sender, RoutedEventArgs e) => await RunEditCommandAsync(t => t.CanPaste, t => t.PasteAsync());
+        private async void EditPastePlain_Click(object sender, RoutedEventArgs e) => await RunEditCommandAsync(t => t.CanPastePlain, t => t.PastePlainAsync());
+        private async void EditSelectAll_Click(object sender, RoutedEventArgs e) => await RunEditCommandAsync(t => t.CanSelectAll, t => t.SelectAllAsync());
+
+        private async void EditUndo_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+        {
+            if (await TryEditCommandAsync(t => t.CanUndo, t => t.UndoAsync()))
+            {
+                args.Handled = true;
+            }
+        }
+
+        private async void EditRedo_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+        {
+            if (await TryEditCommandAsync(t => t.CanRedo, t => t.RedoAsync()))
+            {
+                args.Handled = true;
+            }
+        }
+
+        private async void EditCut_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+        {
+            if (await TryEditCommandAsync(t => t.CanCut, t => t.CutAsync()))
+            {
+                args.Handled = true;
+            }
+        }
+
+        private async void EditCopy_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+        {
+            if (await TryEditCommandAsync(t => t.CanCopy, t => t.CopyAsync()))
+            {
+                args.Handled = true;
+            }
+        }
+
+        private async void EditPaste_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+        {
+            if (await TryEditCommandAsync(t => t.CanPaste, t => t.PasteAsync()))
+            {
+                args.Handled = true;
+            }
+        }
+
+        private async void EditPastePlain_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+        {
+            if (await TryEditCommandAsync(t => t.CanPastePlain, t => t.PastePlainAsync()))
+            {
+                args.Handled = true;
+            }
+        }
+
+        private async void EditSelectAll_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+        {
+            if (await TryEditCommandAsync(t => t.CanSelectAll, t => t.SelectAllAsync()))
+            {
+                args.Handled = true;
+            }
+        }
+
+        private async Task RunEditCommandAsync(Func<IShellEditTarget, bool> canExecute, Func<IShellEditTarget, Task> action)
+        {
+            CloseEditMenuFlyout();
+            await TryEditCommandAsync(canExecute, action);
+        }
+
+        private async Task<bool> TryEditCommandAsync(Func<IShellEditTarget, bool> canExecute, Func<IShellEditTarget, Task> action)
+        {
+            var target = GetEditTarget();
+            if (target is null || !canExecute(target))
+            {
+                return false;
+            }
+
+            await action(target);
+            return true;
+        }
+
+        private void CloseEditMenuFlyout()
+        {
+            if (FindElement<Button>("EditMenuButton")?.Flyout is FlyoutBase flyout && flyout.IsOpen)
+            {
+                flyout.Hide();
+            }
+        }
+
+        private void ViewMenuFlyout_Opening(object sender, object e)
+        {
+            if (FindElement<ToggleMenuFlyoutItem>("ViewSidebarItem") is ToggleMenuFlyoutItem sidebarItem)
+            {
+                sidebarItem.IsChecked = _sidebarVisible;
+                sidebarItem.IsEnabled = _isProjectOpen;
+            }
+
+            if (FindElement<ToggleMenuFlyoutItem>("ViewStatusBarItem") is ToggleMenuFlyoutItem statusItem)
+            {
+                statusItem.IsChecked = _statusBarVisible;
+                statusItem.IsEnabled = _isProjectOpen;
+            }
+
+            SetMenuItemEnabled("ViewEmailItem", _isProjectOpen);
+            SetMenuItemEnabled("ViewDatabaseItem", _isProjectOpen);
+            SetMenuItemEnabled("ViewAttachmentsItem", _isProjectOpen);
+            SetMenuItemEnabled("ViewConfigurationItem", _isProjectOpen);
+            SetMenuItemEnabled("ViewSendItem", _isProjectOpen);
+            SetMenuItemEnabled("ViewPreviewItem", _isProjectOpen);
+            SetMenuItemEnabled("ViewRefreshItem", _isProjectOpen && RootFrame.Content is IShellRefreshable);
+        }
+
+        private void ViewSidebar_Click(object sender, RoutedEventArgs e)
+        {
+            if (!_isProjectOpen)
+            {
+                return;
+            }
+
+            _sidebarVisible = FindElement<ToggleMenuFlyoutItem>("ViewSidebarItem")?.IsChecked == true;
+            ApplyChromeLayout();
+        }
+
+        private void ViewStatusBar_Click(object sender, RoutedEventArgs e)
+        {
+            if (!_isProjectOpen)
+            {
+                return;
+            }
+
+            _statusBarVisible = FindElement<ToggleMenuFlyoutItem>("ViewStatusBarItem")?.IsChecked == true;
+            ApplyChromeLayout();
+        }
+
+        private void ViewSidebar_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+        {
+            if (!_isProjectOpen)
+            {
+                return;
+            }
+
+            args.Handled = true;
+            _sidebarVisible = !_sidebarVisible;
+            ApplyChromeLayout();
+        }
+
+        private void ViewEmail_Click(object sender, RoutedEventArgs e) => NavigateFromViewMenu("Email");
+        private void ViewDatabase_Click(object sender, RoutedEventArgs e) => NavigateFromViewMenu("Database");
+        private void ViewAttachments_Click(object sender, RoutedEventArgs e) => NavigateFromViewMenu("Attachments");
+        private void ViewConfiguration_Click(object sender, RoutedEventArgs e) => NavigateFromViewMenu("Configuration");
+
+        private async void ViewSend_Click(object sender, RoutedEventArgs e)
+        {
+            CloseViewMenuFlyout();
+            if (_isProjectOpen)
+            {
+                await OpenSendPageAsync();
+            }
+        }
+
+        private async void ViewPreview_Click(object sender, RoutedEventArgs e)
+        {
+            CloseViewMenuFlyout();
+            if (_isProjectOpen)
+            {
+                await OpenSendPageAsync();
+            }
+        }
+
+        private async void ViewRefresh_Click(object sender, RoutedEventArgs e)
+        {
+            CloseViewMenuFlyout();
+            await RefreshCurrentPageAsync();
+        }
+
+        private void ViewEmail_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+        {
+            if (!_isProjectOpen) return;
+            args.Handled = true;
+            NavigateToTag("Email");
+        }
+
+        private void ViewDatabase_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+        {
+            if (!_isProjectOpen) return;
+            args.Handled = true;
+            NavigateToTag("Database");
+        }
+
+        private void ViewAttachments_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+        {
+            if (!_isProjectOpen) return;
+            args.Handled = true;
+            NavigateToTag("Attachments");
+        }
+
+        private void ViewConfiguration_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+        {
+            if (!_isProjectOpen) return;
+            args.Handled = true;
+            NavigateToTag("Configuration");
+        }
+
+        private async void ViewSend_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+        {
+            if (!_isProjectOpen) return;
+            args.Handled = true;
+            await OpenSendPageAsync();
+        }
+
+        private async void ViewPreview_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+        {
+            if (!_isProjectOpen) return;
+            args.Handled = true;
+            await OpenSendPageAsync();
+        }
+
+        private async void ViewRefresh_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+        {
+            if (!_isProjectOpen) return;
+            args.Handled = true;
+            await RefreshCurrentPageAsync();
+        }
+
+        private void NavigateFromViewMenu(string tag)
+        {
+            CloseViewMenuFlyout();
+            NavigateToTag(tag);
+        }
+
+        private async Task RefreshCurrentPageAsync()
+        {
+            if (RootFrame.Content is IShellRefreshable refreshable)
+            {
+                await refreshable.RefreshAsync();
+            }
+        }
+
+        private void CloseViewMenuFlyout()
+        {
+            if (FindElement<Button>("ViewMenuButton")?.Flyout is FlyoutBase flyout && flyout.IsOpen)
+            {
+                flyout.Hide();
+            }
+        }
+
+        private async void HelpDocumentation_Click(object sender, RoutedEventArgs e)
+        {
+            CloseHelpMenuFlyout();
+            await ShowDocumentationAsync();
+        }
+
+        private async void HelpShortcuts_Click(object sender, RoutedEventArgs e)
+        {
+            CloseHelpMenuFlyout();
+            await ShowShortcutsAsync();
+        }
+
+        private async void HelpAbout_Click(object sender, RoutedEventArgs e)
+        {
+            CloseHelpMenuFlyout();
+            await ShowAboutAsync();
+        }
+
+        private async void HelpDocumentation_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+        {
+            args.Handled = true;
+            await ShowDocumentationAsync();
+        }
+
+        private async Task ShowDocumentationAsync()
+        {
+            var readmePath = FindReadmePath();
+            if (readmePath is not null)
+            {
+                await Launcher.LaunchUriAsync(new Uri(readmePath));
+                return;
+            }
+
+            var dialog = new ContentDialog
+            {
+                Title = "Getting started",
+                Content = new TextBlock
+                {
+                    Text =
+                        "1. File → New/Open Workspace\n" +
+                        "2. Email — write the HTML template\n" +
+                        "3. Database — import recipients from Excel\n" +
+                        "4. Attachments — add shared/individual files\n" +
+                        "5. Workspace → SMTP — configure sender\n" +
+                        "6. Send — preview, set range/delay, send\n\n" +
+                        "See README.md in the project folder for full documentation.",
+                    TextWrapping = TextWrapping.WrapWholeWords
+                },
+                CloseButtonText = "Close",
+                XamlRoot = Content.XamlRoot
+            };
+            await dialog.ShowAsync();
+        }
+
+        private async Task ShowShortcutsAsync()
+        {
+            var dialog = new ContentDialog
+            {
+                Title = "Keyboard shortcuts",
+                Content = new ScrollViewer
+                {
+                    MaxHeight = 420,
+                    Content = new TextBlock
+                    {
+                        Text =
+                            "File\n" +
+                            "  Ctrl+N        New workspace\n" +
+                            "  Ctrl+O        Open workspace\n" +
+                            "  Ctrl+S        Save workspace\n" +
+                            "  Alt+F4        Exit\n\n" +
+                            "Edit\n" +
+                            "  Ctrl+Z        Undo\n" +
+                            "  Ctrl+Y        Redo\n" +
+                            "  Ctrl+X / C / V  Cut / Copy / Paste\n" +
+                            "  Ctrl+Shift+V  Paste as plain text\n" +
+                            "  Ctrl+A        Select all\n\n" +
+                            "View\n" +
+                            "  Ctrl+B        Toggle sidebar\n" +
+                            "  Ctrl+1…5      Email / Database / Attachments / Configuration / Send\n" +
+                            "  Ctrl+Shift+P  Preview email (Send)\n" +
+                            "  F5            Refresh current page\n\n" +
+                            "Help\n" +
+                            "  F1            Documentation",
+                        FontFamily = new FontFamily("Consolas"),
+                        FontSize = 12,
+                        TextWrapping = TextWrapping.Wrap
+                    }
+                },
+                CloseButtonText = "Close",
+                XamlRoot = Content.XamlRoot
+            };
+            await dialog.ShowAsync();
+        }
+
+        private async Task ShowAboutAsync()
+        {
+            var version = GetAppVersion();
+            var dialog = new ContentDialog
+            {
+                Title = "About MBW",
+                Content = new StackPanel
+                {
+                    Spacing = 8,
+                    Children =
+                    {
+                        new TextBlock
+                        {
+                            Text = "MBW — MailBlast Workspace",
+                            FontSize = 16,
+                            FontWeight = Microsoft.UI.Text.FontWeights.SemiBold
+                        },
+                        new TextBlock { Text = $"Version {version}" },
+                        new TextBlock
+                        {
+                            Text = "A local-first Windows app for creating, previewing, and sending mail-merge email campaigns.",
+                            TextWrapping = TextWrapping.WrapWholeWords
+                        }
+                    }
+                },
+                CloseButtonText = "Close",
+                XamlRoot = Content.XamlRoot
+            };
+            await dialog.ShowAsync();
+        }
+
+        private static string GetAppVersion()
+        {
+            try
+            {
+                var v = Windows.ApplicationModel.Package.Current.Id.Version;
+                return $"{v.Major}.{v.Minor}.{v.Build}.{v.Revision}";
+            }
+            catch
+            {
+                return Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "1.0.0";
+            }
+        }
+
+        private static string? FindReadmePath()
+        {
+            try
+            {
+                var dir = new DirectoryInfo(AppContext.BaseDirectory);
+                for (var i = 0; i < 6 && dir is not null; i++)
+                {
+                    var candidate = Path.Combine(dir.FullName, "README.md");
+                    if (File.Exists(candidate))
+                    {
+                        return candidate;
+                    }
+
+                    dir = dir.Parent;
+                }
+            }
+            catch
+            {
+                // ignore
+            }
+
+            return null;
+        }
+
+        private void CloseHelpMenuFlyout()
+        {
+            if (FindElement<Button>("HelpMenuButton")?.Flyout is FlyoutBase flyout && flyout.IsOpen)
             {
                 flyout.Hide();
             }
@@ -272,6 +707,8 @@ namespace MBW.App
             }
 
             _isProjectOpen = true;
+            _sidebarVisible = true;
+            _statusBarVisible = true;
             SetShellChromeVisible(true);
             NavigateToTag("Email");
             _ = ReloadEmailEditorAsync();
@@ -286,40 +723,69 @@ namespace MBW.App
 
         private void SetShellChromeVisible(bool visible)
         {
-            var chromeVisibility = visible ? Visibility.Visible : Visibility.Collapsed;
-            var sidebarWidth = visible
+            if (!visible)
+            {
+                SidebarColumn.Width = new GridLength(0);
+                StatusBarRow.Height = new GridLength(0);
+                ShellSidebarPanel.Visibility = Visibility.Collapsed;
+                ShellStatusBar.Visibility = Visibility.Collapsed;
+                ShellBodyGrid.BorderThickness = new Thickness(0);
+
+                if (FindElement<Button>("WorkspaceMenuButton") is Button workspaceMenu)
+                {
+                    workspaceMenu.Visibility = Visibility.Collapsed;
+                }
+
+                if (FindElement<Button>("SmtpButton") is Button smtpButton)
+                {
+                    smtpButton.Visibility = Visibility.Collapsed;
+                }
+
+                Grid.SetColumn(RootFrame, 0);
+                Grid.SetColumnSpan(RootFrame, 2);
+                RootFrame.Background = Application.Current.Resources["MBWStatusBarBrush"] as Brush ?? TransparentBrush;
+                RootLayoutGrid.Background = Application.Current.Resources["MBWStatusBarBrush"] as Brush ?? TransparentBrush;
+                return;
+            }
+
+            if (FindElement<Button>("WorkspaceMenuButton") is Button wsMenu)
+            {
+                wsMenu.Visibility = Visibility.Visible;
+            }
+
+            if (FindElement<Button>("SmtpButton") is Button smtp)
+            {
+                smtp.Visibility = Visibility.Visible;
+            }
+
+            ShellBodyGrid.BorderThickness = new Thickness(0, 1, 0, 0);
+            RootFrame.Background = GetThemeBrush("ApplicationPageBackgroundThemeBrush");
+            RootLayoutGrid.Background = Application.Current.Resources["MBWSidebarBrush"] as Brush ?? TransparentBrush;
+            ApplyChromeLayout();
+        }
+
+        private void ApplyChromeLayout()
+        {
+            if (!_isProjectOpen)
+            {
+                return;
+            }
+
+            var showSidebar = _sidebarVisible;
+            var showStatus = _statusBarVisible;
+
+            SidebarColumn.Width = showSidebar
                 ? (GridLength)Application.Current.Resources["ShellSidebarWidth"]
                 : new GridLength(0);
-            var statusBarHeight = visible
+            StatusBarRow.Height = showStatus
                 ? (GridLength)Application.Current.Resources["ShellStatusBarHeight"]
                 : new GridLength(0);
 
-            SidebarColumn.Width = sidebarWidth;
-            StatusBarRow.Height = statusBarHeight;
+            ShellSidebarPanel.Visibility = showSidebar ? Visibility.Visible : Visibility.Collapsed;
+            ShellStatusBar.Visibility = showStatus ? Visibility.Visible : Visibility.Collapsed;
 
-            ShellSidebarPanel.Visibility = chromeVisibility;
-            ShellStatusBar.Visibility = chromeVisibility;
-            ShellBodyGrid.BorderThickness = visible ? new Thickness(0, 1, 0, 0) : new Thickness(0);
-
-            if (FindElement<Button>("WorkspaceMenuButton") is Button workspaceMenu)
-            {
-                workspaceMenu.Visibility = chromeVisibility;
-            }
-
-            if (FindElement<Button>("SmtpButton") is Button smtpButton)
-            {
-                smtpButton.Visibility = chromeVisibility;
-            }
-
-            Grid.SetColumn(RootFrame, visible ? 1 : 0);
-            Grid.SetColumnSpan(RootFrame, visible ? 1 : 2);
-            RootFrame.Background = visible
-                ? GetThemeBrush("ApplicationPageBackgroundThemeBrush")
-                : Application.Current.Resources["MBWStatusBarBrush"] as Brush ?? TransparentBrush;
-
-            RootLayoutGrid.Background = visible
-                ? Application.Current.Resources["MBWSidebarBrush"] as Brush ?? TransparentBrush
-                : Application.Current.Resources["MBWStatusBarBrush"] as Brush ?? TransparentBrush;
+            Grid.SetColumn(RootFrame, showSidebar ? 1 : 0);
+            Grid.SetColumnSpan(RootFrame, showSidebar ? 1 : 2);
         }
 
         private void NavigateToWelcome()
@@ -480,6 +946,14 @@ namespace MBW.App
                 icon.Foreground = isActive
                     ? GetThemeBrush("AccentFillColorDefaultBrush")
                     : GetThemeBrush("TextFillColorSecondary");
+            }
+        }
+
+        private void SetMenuItemEnabled(string name, bool enabled)
+        {
+            if (FindElement<MenuFlyoutItem>(name) is MenuFlyoutItem item)
+            {
+                item.IsEnabled = enabled;
             }
         }
 

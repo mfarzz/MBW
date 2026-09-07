@@ -11,7 +11,7 @@
   <Identity
     Name="32e82035-81e5-40fb-9e74-6f898e5d80f5"
     Publisher="CN=mfari"
-    Version="1.0.0.0" />
+    Version="1.0.1.0" />
 
   <mp:PhoneIdentity PhoneProductId="32e82035-81e5-40fb-9e74-6f898e5d80f5" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 

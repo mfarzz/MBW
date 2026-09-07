@@ -36,7 +36,7 @@
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Spacing="6">
-            <TextBlock Text="Attachments" FontSize="28" FontWeight="SemiBold" />
+        <TextBlock Text="Attachments" FontSize="28" FontWeight="SemiBold" />
             <TextBlock Text="Manage attachment folders and files. The shared folder applies to all recipients; individual folders hold per-recipient attachments."
                        Opacity="0.7"
                        TextWrapping="Wrap" />

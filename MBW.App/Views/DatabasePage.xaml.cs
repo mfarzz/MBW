@@ -1,4 +1,5 @@
 using MBW.App.Composition;
+using MBW.App.Shell;
 using MBW.App.ViewModels;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -11,7 +12,7 @@ using WinRT.Interop;
 
 namespace MBW.App.Views
 {
-    public sealed partial class DatabasePage : Page
+    public sealed partial class DatabasePage : Page, IShellRefreshable
     {
         private readonly DatabaseViewModel _viewModel;
         private bool _syncingScroll;
@@ -29,6 +30,8 @@ namespace MBW.App.Views
             Loaded += DatabasePage_Loaded;
             NavigationCacheMode = Microsoft.UI.Xaml.Navigation.NavigationCacheMode.Enabled;
         }
+
+        public Task RefreshAsync() => _viewModel.EnsureLoadedAsync(force: true);
 
         private async void DatabasePage_Loaded(object sender, RoutedEventArgs e)
         {

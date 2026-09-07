@@ -1,4 +1,5 @@
 using MBW.App.Composition;
+using MBW.App.Shell;
 using MBW.App.ViewModels;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -15,7 +16,7 @@ using WinRT.Interop;
 
 namespace MBW.App.Views
 {
-    public sealed partial class AttachmentsPage : Page
+    public sealed partial class AttachmentsPage : Page, IShellEditTarget, IShellRefreshable
     {
         private readonly AttachmentsViewModel _viewModel;
         private bool _syncingScroll;
@@ -34,6 +35,56 @@ namespace MBW.App.Views
             DataContext = _viewModel;
             NavigationCacheMode = NavigationCacheMode.Enabled;
             Loaded += AttachmentsPage_Loaded;
+        }
+
+        public bool CanUndo => false;
+        public bool CanRedo => false;
+        public bool CanCut => _viewModel.CanCutItem;
+        public bool CanCopy => _viewModel.CanCopyItem;
+        public bool CanPaste => _viewModel.CanPasteItem;
+        public bool CanPastePlain => false;
+        public bool CanSelectAll => false;
+
+        public Task UndoAsync() => Task.CompletedTask;
+        public Task RedoAsync() => Task.CompletedTask;
+
+        public Task CutAsync()
+        {
+            if (_viewModel.CutItemCommand.CanExecute(null))
+            {
+                _viewModel.CutItemCommand.Execute(null);
+            }
+
+            return Task.CompletedTask;
+        }
+
+        public Task CopyAsync()
+        {
+            if (_viewModel.CopyItemCommand.CanExecute(null))
+            {
+                _viewModel.CopyItemCommand.Execute(null);
+            }
+
+            return Task.CompletedTask;
+        }
+
+        public async Task PasteAsync()
+        {
+            if (_viewModel.PasteItemCommand.CanExecute(null))
+            {
+                await _viewModel.PasteItemCommand.ExecuteAsync(null);
+            }
+        }
+
+        public Task PastePlainAsync() => Task.CompletedTask;
+        public Task SelectAllAsync() => Task.CompletedTask;
+
+        public async Task RefreshAsync()
+        {
+            if (_viewModel.RefreshCommand.CanExecute(null))
+            {
+                await _viewModel.RefreshCommand.ExecuteAsync(null);
+            }
         }
 
         private async void AttachmentsPage_Loaded(object sender, RoutedEventArgs e)

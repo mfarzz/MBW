@@ -1,4 +1,5 @@
 using MBW.App.Composition;
+using MBW.App.Shell;
 using MBW.App.ViewModels;
 using MBW.Core.Models;
 using Microsoft.UI;
@@ -21,7 +22,7 @@ using WinRT.Interop;
 
 namespace MBW.App.Views
 {
-    public sealed partial class EmailEditorPage : Page
+    public sealed partial class EmailEditorPage : Page, IShellEditTarget, IShellRefreshable
     {
         private bool _isEditorReady;
         private bool _suppressRibbonEvents = true;
@@ -66,6 +67,44 @@ namespace MBW.App.Views
         private async void ViewModel_EditorContentLoaded(object? sender, string html)
         {
             await ApplyEditorContentAsync(html);
+        }
+
+        public bool CanUndo => CanEditRichText;
+        public bool CanRedo => CanEditRichText;
+        public bool CanCut => CanEditRichText;
+        public bool CanCopy => CanEditRichText;
+        public bool CanPaste => CanEditRichText;
+        public bool CanPastePlain => CanEditRichText;
+        public bool CanSelectAll => CanEditRichText || _isHtmlSourceMode;
+
+        private bool CanEditRichText => _isEditorReady && !_isHtmlSourceMode && HtmlEditor?.CoreWebView2 is not null;
+
+        public Task UndoAsync() => ExecEditorCommandAsync("undo");
+        public Task RedoAsync() => ExecEditorCommandAsync("redo");
+        public Task CutAsync() => ExecEditorCommandAsync("cut");
+        public Task CopyAsync() => ExecEditorCommandAsync("copy");
+        public Task PasteAsync() => PasteFromClipboardAsync(formatted: true);
+        public Task PastePlainAsync() => PasteFromClipboardAsync(formatted: false);
+        public Task SelectAllAsync() =>
+            _isHtmlSourceMode
+                ? SelectHtmlSourceAllAsync()
+                : ExecEditorCommandAsync("selectAll");
+
+        public async Task RefreshAsync()
+        {
+            var path = AppServices.WorkspaceCoordinator.WorkspacePath;
+            if (ViewModel is null || string.IsNullOrWhiteSpace(path))
+            {
+                return;
+            }
+
+            await ViewModel.LoadWorkspaceAsync(path);
+        }
+
+        private Task SelectHtmlSourceAllAsync()
+        {
+            HtmlSourceBox.SelectAll();
+            return Task.CompletedTask;
         }
 
         public async Task SyncEditorToViewModelAsync()
